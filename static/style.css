@@ -1,0 +1,88 @@
+body {
+    background-color: #42254b;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    font-size: 2em;
+    margin-bottom: 20px;
+}
+
+.dashboard-container {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.tile {
+    flex: 1;
+    min-width: 250px;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+h2 {
+    color: #ffffff;
+    font-size: 1.5em;
+    margin-top: 0;
+}
+
+#weather-info, #transit-info {
+    font-size: 1.2em;
+    white-space: pre-line;
+}
+.input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.input-row input {
+    flex: 1;
+    padding: 8px;
+    border-radius: 8px;
+    border: none;
+    font-size: 1em;
+}
+
+.input-row button {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background-color: #ffffff;
+    color: #42254b;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.08);
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 1.1em;
+}
+
+li button {
+    background: none;
+    border: none;
+    color: #ff8080;
+    font-size: 1.2em;
+    cursor: pointer;
+}

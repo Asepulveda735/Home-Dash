@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>My Dashboard</h1>
+
+    <div class="dashboard-container">
+        <div class="tile" id="weather-tile">
+            <h2>Weather</h2>
+            <p id="weather-info">Loading weather data...</p>
+        </div>
+
+        <div class="tile" id="transit-tile">
+            <h2>Transit</h2>
+            <p id="transit-info">Loading transit data...</p>
+        </div>
+
+        <div class="tile" id="todos-tile">
+            <h2>To-Dos</h2>
+            <div class="input-row">
+                <input type="text" id="todo-input" placeholder="Add a task...">
+                <button onclick="addTodo()">Add</button>
+            </div>
+            <ul id="todo-list"></ul>
+        </div>
+
+        <div class="tile" id="bucketlist-tile">
+            <h2>Bucket List</h2>
+            <div class="input-row">
+                <input type="text" id="bucketlist-input" placeholder="Add a goal...">
+                <button onclick="addBucketItem()">Add</button>
+            </div>
+            <ul id="bucketlist-list"></ul>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
