@@ -1,3 +1,4 @@
+// ---- Weather ----
 async function loadWeather() {
     const response = await fetch('/api/weather');
     const data = await response.json();
@@ -9,12 +10,12 @@ async function loadWeather() {
     document.getElementById('weather-info').textContent = weatherMessage;
 }
 
+// ---- Transit ----
 async function loadTransit() {
     const response = await fetch('/api/transit');
     const data = await response.json();
 
     const arrivals = data.ctatt.eta;
-
     const transitMessage = arrivals.slice(0, 4).map(arrival => {
         const time = new Date(arrival.arrT).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         return `${arrival.rt} Line to ${arrival.destNm}: ${time}`;
@@ -23,91 +24,84 @@ async function loadTransit() {
     document.getElementById('transit-info').innerHTML = transitMessage;
 }
 
-loadWeather();
-loadTransit();
-setInterval(loadWeather, 60000); // Refresh weather every 60 seconds
-setInterval(loadTransit, 30000); // Refresh transit every 30 seconds
-
 // ---- To-Do List ----
-function getTodos() {
-    return JSON.parse(localStorage.getItem('todos')) || [];
-}
+async function renderTodos() {
+    const response = await fetch('/api/todos');
+    const todos = await response.json();
 
-function saveTodos(todos) {
-    localStorage.setItem('todos', JSON.stringify(todos));
-}
-
-function renderTodos() {
-    const todos = getTodos();
     const list = document.getElementById('todo-list');
     list.innerHTML = '';
 
-    todos.forEach((task, index) => {
+    todos.forEach(task => {
         const li = document.createElement('li');
-        li.innerHTML = `<span>${task}</span> <button onclick="deleteTodo(${index})">✕</button>`;
+        li.innerHTML = `<span>${task}</span> <button onclick="deleteTodo('${encodeURIComponent(task)}')">✕</button>`;
         list.appendChild(li);
     });
 }
 
-function addTodo() {
+async function addTodo() {
     const input = document.getElementById('todo-input');
     const value = input.value.trim();
     if (value === '') return;
 
-    const todos = getTodos();
-    todos.push(value);
-    saveTodos(todos);
+    await fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: value })
+    });
+
     input.value = '';
     renderTodos();
 }
 
-function deleteTodo(index) {
-    const todos = getTodos();
-    todos.splice(index, 1);
-    saveTodos(todos);
+async function deleteTodo(item) {
+    await fetch(`/api/todos/${item}`, { method: 'DELETE' });
     renderTodos();
 }
 
 // ---- Bucket List ----
-function getBucketList() {
-    return JSON.parse(localStorage.getItem('bucketlist')) || [];
-}
+async function renderBucketList() {
+    const response = await fetch('/api/bucketlist');
+    const items = await response.json();
 
-function saveBucketList(items) {
-    localStorage.setItem('bucketlist', JSON.stringify(items));
-}
-
-function renderBucketList() {
-    const items = getBucketList();
     const list = document.getElementById('bucketlist-list');
     list.innerHTML = '';
 
-    items.forEach((goal, index) => {
+    items.forEach(goal => {
         const li = document.createElement('li');
-        li.innerHTML = `<span>${goal}</span> <button onclick="deleteBucketItem(${index})">✕</button>`;
+        li.innerHTML = `<span>${goal}</span> <button onclick="deleteBucketItem('${encodeURIComponent(goal)}')">✕</button>`;
         list.appendChild(li);
     });
 }
 
-function addBucketItem() {
+async function addBucketItem() {
     const input = document.getElementById('bucketlist-input');
     const value = input.value.trim();
     if (value === '') return;
 
-    const items = getBucketList();
-    items.push(value);
-    saveBucketList(items);
+    await fetch('/api/bucketlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: value })
+    });
+
     input.value = '';
     renderBucketList();
 }
 
-function deleteBucketItem(index) {
-    const items = getBucketList();
-    items.splice(index, 1);
-    saveBucketList(items);
+async function deleteBucketItem(item) {
+    await fetch(`/api/bucketlist/${item}`, { method: 'DELETE' });
     renderBucketList();
 }
 
-// ---- Initial render on page load ----
+// ---- Initial load ----
+loadWeather();
+loadTransit();
 renderTodos();
 renderBucketList();
+
+// ---- Auto refresh ----
+setInterval(loadWeather, 60000);
+setInterval(loadTransit, 30000);
+setInterval(renderTodos, 30000);
+setInterval(renderBucketList, 30000);
