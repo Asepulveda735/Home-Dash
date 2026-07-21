@@ -36,6 +36,12 @@
             </div>
             <ul id="bucketlist-list"></ul>
         </div>
+        <div class="tile" id="voice-tile">
+            <h2>Assistant</h2>
+            <button id="mic-button" onclick="startListening()">🎤 Tap to Speak</button>
+            <p id="voice-status">Ready</p>
+            <p id="voice-response"></p>
+        </div>
     </div>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>

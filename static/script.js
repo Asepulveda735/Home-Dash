@@ -94,6 +94,42 @@ async function deleteBucketItem(item) {
     renderBucketList();
 }
 
+
+// ---- Voice Assistant ----
+function startListening() {
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+
+    document.getElementById('voice-status').textContent = 'Listening...';
+    document.getElementById('mic-button').textContent = '🔴 Listening...';
+
+    recognition.onresult = async function(event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('voice-status').textContent = `Heard: "${transcript}"`;
+
+        const response = await fetch('/api/voice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: transcript })
+        });
+
+        const data = await response.json();
+        document.getElementById('voice-response').textContent = data.response;
+    };
+
+    recognition.onerror = function(event) {
+        document.getElementById('voice-status').textContent = 'Error: ' + event.error;
+        document.getElementById('mic-button').textContent = '🎤 Tap to Speak';
+    };
+
+    recognition.onend = function() {
+        document.getElementById('mic-button').textContent = '🎤 Tap to Speak';
+    };
+
+    recognition.start();
+}
+
 // ---- Initial load ----
 loadWeather();
 loadTransit();

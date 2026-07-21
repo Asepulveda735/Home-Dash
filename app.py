@@ -197,5 +197,13 @@ def delete_bucketlist_item(item):
     # Step 6: return success
     return jsonify({"status": "ok"})
 
+@app.route("/api/voice", methods=["POST"])
+def voice_command():
+    text = request.json.get("text")
+    print("Voice command received:", text)
+    # Phase 3 will process this with Claude
+    # For now just echo it back
+    return jsonify({"response": f"You said: {text}"})
+
 if __name__ == "__main__":
     app.run(debug=True)

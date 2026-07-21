@@ -86,3 +86,29 @@ li button {
     font-size: 1.2em;
     cursor: pointer;
 }
+
+#mic-button {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    border-radius: 12px;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+#mic-button:active {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+#voice-status {
+    font-size: 0.9em;
+    opacity: 0.7;
+}
+
+#voice-response {
+    font-size: 1em;
+    margin-top: 10px;
+}
