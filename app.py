@@ -1,8 +1,9 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, render_template
 from dotenv import load_dotenv
 import requests
 import os
-from flask import Flask, jsonify, request
+import json
+import anthropic
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -10,7 +11,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Load environment variables from .env
 load_dotenv()
-
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+claude_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 OWM_API_KEY = os.getenv("OWM_API_KEY")
 CTA_API_KEY = os.getenv("CTA_API_KEY")  # or whatever transit key you got
 OBSIDIAN_API_KEY = os.getenv("OBSIDIAN_API_KEY")
@@ -200,10 +202,94 @@ def delete_bucketlist_item(item):
 @app.route("/api/voice", methods=["POST"])
 def voice_command():
     text = request.json.get("text")
-    print("Voice command received:", text)
-    # Phase 3 will process this with Claude
-    # For now just echo it back
-    return jsonify({"response": f"You said: {text}"})
+
+    # Step 1: gather context from Obsidian
+    todos = read_note("todos.md")
+    bucketlist = read_note("bucketlist.md")
+
+    # Step 2: build a system prompt telling Claude what it can do
+    system_prompt = f"""You are a smart home dashboard assistant. 
+You help manage todos and bucket list items stored in Obsidian.
+
+Current todos:
+{todos}
+
+Current bucket list:
+{bucketlist}
+
+When the user wants to add or remove items, respond with a JSON action like:
+{{"action": "add_todo", "text": "item text"}}
+{{"action": "delete_todo", "text": "item text"}}
+{{"action": "add_bucket", "text": "item text"}}
+{{"action": "delete_bucket", "text": "item text"}}
+{{"action": "none", "response": "your conversational response here"}}
+
+Always respond with valid JSON and nothing else."""
+
+    # Step 3: call Claude
+    # TODO: use claude_client.messages.create() to send the voice command
+    # model: "claude-sonnet-4-6"
+    # max_tokens: 256
+    # messages: [{"role": "user", "content": text}]
+    # system: system_prompt
+    response = claude_client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=256,
+        system=system_prompt,
+        messages=[
+            {"role": "user", "content": text}
+        ]
+    )
+
+    # Step 4: parse Claude's response as JSON
+    # TODO: parse the response text as JSON
+    try:
+        action_data = response.content[0].text  # Assuming the response is in the first message
+        action_json = json.loads(action_data)
+    except Exception as e:
+        return jsonify({"error": "Failed to parse Claude's response as JSON", "details": str(e)}), 400
+
+    # Step 5: execute the action
+    # TODO: based on action field, call the right function
+    # add_todo → read note, append, write note
+    # delete_todo → read note, filter, write note
+    # none → just return the response text
+    action = action_json.get("action")
+    if action == "add_todo":
+        text = action_json.get("text")
+        content = read_note("todos.md")
+        if content and not content.endswith("\n"):
+            content += "\n"
+        new_content = content + f"- [ ] {text}\n"
+        write_note("todos.md", new_content)
+        return jsonify({"status": "ok", "action": "add_todo", "text": text})
+    elif action == "delete_todo":
+        text = action_json.get("text")
+        content = read_note("todos.md")
+        lines = content.split("\n")
+        filtered_lines = [line for line in lines if text not in line]
+        new_content = "\n".join(filtered_lines)
+        write_note("todos.md", new_content)
+        return jsonify({"status": "ok", "action": "delete_todo", "text": text})
+    elif action == "add_bucket":    
+        text = action_json.get("text")
+        content = read_note("bucketlist.md")
+        if content and not content.endswith("\n"):
+            content += "\n"
+        new_content = content + f"- [ ] {text}\n"
+        write_note("bucketlist.md", new_content)
+        return jsonify({"status": "ok", "action": "add_bucket", "text": text})
+    elif action == "delete_bucket":
+        text = action_json.get("text")
+        content = read_note("bucketlist.md")
+        lines = content.split("\n")
+        filtered_lines = [line for line in lines if text not in line]
+        new_content = "\n".join(filtered_lines)
+        write_note("bucketlist.md", new_content)
+        return jsonify({"status": "ok", "action": "delete_bucket", "text": text})
+    
+    return jsonify({"response": action_json.get("response", "I'm not sure how to help with that.")})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
