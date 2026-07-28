@@ -39,6 +39,33 @@ def write_note(filename, content):
     response = requests.put(f"{OBSIDIAN_BASE_URL}/vault/{filename}", headers=OBSIDIAN_HEADERS, data=content, verify=False)
     return response.text
 
+def update_memory(user_text, action_taken, memory_update=None):
+    memory = read_note("memory.md")
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+    
+    # always log the interaction
+    log_entry = f"- [{timestamp}] '{user_text}' → {action_taken}\n"
+    
+    # if Claude learned something new, add it to preferences
+    if memory_update:
+        # find the Preferences section and append to it
+        if "## Preferences" in memory:
+            memory = memory.replace(
+                "## Preferences",
+                f"## Preferences\n- {memory_update}"
+            )
+        else:
+            memory += f"\n## Preferences\n- {memory_update}\n"
+    
+    # append to conversation history
+    if "## Conversation History" in memory:
+        memory += log_entry
+    else:
+        memory += f"\n## Conversation History\n{log_entry}"
+    
+    write_note("memory.md", memory)
+
 @app.route("/dashboard")
 def dashboard():
     return render_template("index.html")
@@ -59,12 +86,6 @@ def get_weather():
     response = requests.get("https://api.openweathermap.org/data/2.5/weather", params=params)
     response_json = response.json()
     return jsonify(response_json)
-
-
-    # 1. Build the request URL using OWM_API_KEY and a city (e.g. "Wheeling,IL,US")
-    # 2. Call it with requests.get()
-    # 3. Convert the response to JSON with .json()
-    # 4. Return it using jsonify()
     pass
 
 
@@ -79,12 +100,6 @@ def get_transit():
     response = requests.get("http://lapi.transitchicago.com/api/1.0/ttarrivals.aspx", params=params)
     response_json = response.json()
     return jsonify(response_json)
-
-
-    # 1. Build the request URL using CTA_API_KEY and a stop/route ID
-    # 2. Call it with requests.get()
-    # 3. Convert the response to JSON with .json()
-    # 4. Return it using jsonify()
     pass
 
 @app.route("/api/todos", methods=["GET"])
@@ -152,9 +167,6 @@ def get_bucketlist():
     # Step 2: split into individual lines
     lines = content.split("\n")
 
-    # Step 3: filter and parse
-    # hint: not every line will start with "- [ ]" or "- [x]"
-    # you only want lines that DO start with one of those
     bucketlist = []
     for line in lines:
         if line.startswith("- [ ]") or line.startswith("- [x]"):
@@ -204,27 +216,52 @@ def voice_command():
     text = request.json.get("text")
 
     # Step 1: gather context from Obsidian
+    
+    # Step 1: gather context from Obsiddon
     todos = read_note("todos.md")
     bucketlist = read_note("bucketlist.md")
+    memory = read_note("memory.md")
 
-    # Step 2: build a system prompt telling Claude what it can do
-    system_prompt = f"""You are a smart home dashboard assistant. 
-You help manage todos and bucket list items stored in Obsidian.
+    # Step 2: system prompt now includes memory
+    system_prompt = f"""You are Hubert, a personal AI assistant living on Ale's home dashboard. You are witty, warm, and helpful — like Jarvis from Iron Man but more casual and friendly. You know Ale well and get to know them better over time.
 
-Current todos:
-{todos}
+    ## What you know about Ale:
+    {memory}
 
-Current bucket list:
-{bucketlist}
+    ## Ale's current todos:
+    {todos}
 
-When the user wants to add or remove items, respond with a JSON action like:
-{{"action": "add_todo", "text": "item text"}}
-{{"action": "delete_todo", "text": "item text"}}
-{{"action": "add_bucket", "text": "item text"}}
-{{"action": "delete_bucket", "text": "item text"}}
-{{"action": "none", "response": "your conversational response here"}}
+    ## Ale's current bucket list:
+    {bucketlist}
 
-Always respond with valid JSON and nothing else."""
+    ## Your personality:
+    - You're conversational and natural, not robotic
+    - You remember past conversations and reference them naturally
+    - You notice patterns and make proactive recommendations
+    - You're concise but warm — no unnecessary filler
+    - You occasionally make light jokes or observations
+    - You address Ale by BossMan sometimes
+
+    ## Your capabilities:
+    - Manage todos and bucket list
+    - Answer questions conversationally
+    - Make recommendations based on known preferences
+    - Notice patterns ("You've added a lot of food places to your bucket list — into trying new restaurants?")
+    - Using previously learned information to answer questions and make recommendations
+
+    ## Response format:
+    Always respond with valid JSON and nothing else:
+
+    For actions:
+    {{"action": "add_todo", "text": "item", "response": "confirmation message in your voice", "memory_update": "optional insight about Ale worth remembering"}}
+    {{"action": "delete_todo", "text": "item", "response": "confirmation message", "memory_update": null}}
+    {{"action": "add_bucket", "text": "item", "response": "confirmation message", "memory_update": "optional insight"}}
+    {{"action": "delete_bucket", "text": "item", "response": "confirmation message", "memory_update": null}}
+
+    For conversation:
+    {{"action": "none", "response": "your conversational response", "memory_update": "optional insight worth remembering"}}
+
+    The memory_update field should only be filled when you learn something genuinely useful about Ale's preferences, habits, or interests. Not every interaction needs one."""
 
     # Step 3: call Claude
     # TODO: use claude_client.messages.create() to send the voice command
@@ -255,6 +292,9 @@ Always respond with valid JSON and nothing else."""
     # delete_todo → read note, filter, write note
     # none → just return the response text
     action = action_json.get("action")
+    memory_update = action_json.get("memory_update")
+    response_text = action_json.get("response", "Done.")
+
     if action == "add_todo":
         text = action_json.get("text")
         content = read_note("todos.md")
@@ -262,34 +302,43 @@ Always respond with valid JSON and nothing else."""
             content += "\n"
         new_content = content + f"- [ ] {text}\n"
         write_note("todos.md", new_content)
-        return jsonify({"status": "ok", "action": "add_todo", "text": text})
+        update_memory(user_text=request.json.get("text"), action_taken=f"added '{text}' to todos", memory_update=memory_update)
+        renderTodos()
+        return jsonify({"response": response_text})
+
     elif action == "delete_todo":
         text = action_json.get("text")
         content = read_note("todos.md")
         lines = content.split("\n")
-        filtered_lines = [line for line in lines if text not in line]
+        filtered_lines = [line for line in lines if text.lower() not in line.lower()]
         new_content = "\n".join(filtered_lines)
         write_note("todos.md", new_content)
-        return jsonify({"status": "ok", "action": "delete_todo", "text": text})
-    elif action == "add_bucket":    
+        update_memory(user_text=request.json.get("text"), action_taken=f"deleted '{text}' from todos", memory_update=memory_update)
+        return jsonify({"response": response_text})
+
+    elif action == "add_bucket":
         text = action_json.get("text")
         content = read_note("bucketlist.md")
         if content and not content.endswith("\n"):
             content += "\n"
         new_content = content + f"- [ ] {text}\n"
         write_note("bucketlist.md", new_content)
-        return jsonify({"status": "ok", "action": "add_bucket", "text": text})
+        update_memory(user_text=request.json.get("text"), action_taken=f"added '{text}' to bucket list", memory_update=memory_update)
+        return jsonify({"response": response_text})
+
     elif action == "delete_bucket":
         text = action_json.get("text")
         content = read_note("bucketlist.md")
         lines = content.split("\n")
-        filtered_lines = [line for line in lines if text not in line]
+        filtered_lines = [line for line in lines if text.lower() not in line.lower()]
         new_content = "\n".join(filtered_lines)
         write_note("bucketlist.md", new_content)
-        return jsonify({"status": "ok", "action": "delete_bucket", "text": text})
-    
-    return jsonify({"response": action_json.get("response", "I'm not sure how to help with that.")})
+        update_memory(user_text=request.json.get("text"), action_taken=f"deleted '{text}' from bucket list", memory_update=memory_update)
+        return jsonify({"response": response_text})
 
+    response_text = action_json.get("response", "I'm not sure how to help with that.")
+    update_memory(user_text=request.json.get("text"), action_taken="conversational response", memory_update=memory_update)
+    return jsonify({"response": response_text})
 
 if __name__ == "__main__":
     app.run(debug=True)

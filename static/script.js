@@ -116,6 +116,17 @@ function startListening() {
 
         const data = await response.json();
         document.getElementById('voice-response').textContent = data.response;
+
+        if (data.response) {
+            const utterance = new SpeechSynthesisUtterance(data.response);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+        if (data.action && data.action !== 'none') {
+            renderTodos();
+            renderBucketList();
+        }
     };
 
     recognition.onerror = function(event) {
