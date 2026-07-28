@@ -6,16 +6,20 @@
     padding: 0;
 }
 
+html, body {
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+}
+
 body {
     background-color: #0a0808;
     color: #e0d4f7;
     font-family: 'Inter', sans-serif;
-    font-weight: 500;
+    font-weight: 400;
     min-height: 100vh;
-    overflow-x: hidden;
 }
 
-/* ---- Scan lines ---- */
 body::before {
     content: '';
     position: fixed;
@@ -36,6 +40,47 @@ body::after {
     height: 1px;
     background: linear-gradient(90deg, transparent, rgba(111,40,190,0.4), transparent);
     z-index: 100;
+}
+
+/* ---- Swipeable pages ---- */
+.pages-wrapper {
+    display: flex;
+    flex-direction: row;
+    width: 300vw;
+    height: 100vh;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page {
+    width: 100vw;
+    height: 100vh;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+/* ---- Dot navigation ---- */
+.page-dots {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 200;
+}
+
+.dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #333;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.dot.active {
+    background: #6F28BE;
+    transform: scale(1.3);
 }
 
 /* ---- Header ---- */
@@ -90,7 +135,7 @@ body::after {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    padding: 0 24px 24px;
+    padding: 0 24px 60px;
 }
 
 /* ---- Tiles ---- */
@@ -118,7 +163,7 @@ body::after {
     line-height: 1.6;
 }
 
-/* ---- Todo and Bucket List ---- */
+/* ---- Input rows ---- */
 .input-row {
     display: flex;
     gap: 6px;
@@ -134,7 +179,7 @@ body::after {
     color: #e0d4f7;
     font-size: 11px;
     font-family: 'Inter', sans-serif;
-    font-weight: 500;
+    font-weight: 400;
     outline: none;
 }
 
@@ -163,6 +208,7 @@ body::after {
     background: rgba(111,40,190,0.15);
 }
 
+/* ---- Lists ---- */
 ul {
     list-style: none;
     padding: 0;
@@ -176,6 +222,7 @@ li {
     padding: 7px 0;
     border-bottom: 1px solid #1a1a1a;
     font-size: 12px;
+    font-weight: 400;
     color: #c4b8e0;
 }
 

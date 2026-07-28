@@ -166,6 +166,39 @@ function startListening() {
     recognition.start();
 }
 
+
+// ---- Page navigation ----
+let currentPage = 0;
+const totalPages = 3;
+let touchStartX = 0;
+
+function goToPage(index) {
+    // TODO:
+    // 1. clamp index between 0 and totalPages - 1
+    index = Math.max(0, Math.min(index, totalPages - 1));
+    // 2. set currentPage = index
+    currentPage = index;
+    // 3. move .pages-wrapper with transform: translateX(-{index * 100}vw)
+    document.querySelector('.pages-wrapper').style.transform = `translateX(-${index * 100}vw)`;
+    // 4. update dots — remove 'active' from all, add to the current one
+    document.querySelectorAll('.dot').forEach((dot, i) => {
+        dot.classList.toggle('active', i === index);
+    });
+}
+
+// Touch swipe detection
+document.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+});
+
+document.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+        if (diff > 0) goToPage(currentPage + 1); // swipe left
+        else goToPage(currentPage - 1);           // swipe right
+    }
+});
+
 // ---- Initial load ----
 loadWeather();
 loadTransit();
