@@ -144,8 +144,17 @@ function startListening() {
 
         if (data.response) {
             const utterance = new SpeechSynthesisUtterance(data.response);
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
+            utterance.rate = 0.88;
+            utterance.pitch = 0.85;
+            utterance.volume = 1.0;
+
+            const voices = window.speechSynthesis.getVoices();
+            const preferred = voices.find(v => v.name.includes('Daniel')) 
+                || voices.find(v => v.name.includes('Google UK English Male'))
+                || voices.find(v => v.lang === 'en-GB')
+                || voices.find(v => v.lang.startsWith('en'));
+
+            if (preferred) utterance.voice = preferred;
             window.speechSynthesis.speak(utterance);
         }
         if (data.action && data.action !== 'none') {
