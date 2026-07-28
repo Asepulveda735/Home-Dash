@@ -1,3 +1,18 @@
+// ---- WebSockets ----
+const socket = io();
+
+socket.on('dashboard_update', function(data) {
+    if (data.type === 'todos') {
+        renderTodos();
+    }
+    if (data.type === 'bucketlist') {
+        renderBucketList();
+    }
+    if (data.type === 'all') {
+        renderTodos();
+        renderBucketList();
+    }
+});
 // ---- Weather ----
 async function loadWeather() {
     const response = await fetch('/api/weather');

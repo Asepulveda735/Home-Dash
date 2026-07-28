@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request, render_template
 from dotenv import load_dotenv
+from flask_socketio import SocketIO
 import requests
 import os
 import json
@@ -25,6 +26,7 @@ OBSIDIAN_HEADERS = {
 
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 from flask import render_template
 
@@ -302,6 +304,7 @@ def voice_command():
             content += "\n"
         new_content = content + f"- [ ] {text}\n"
         write_note("todos.md", new_content)
+        socketio.emit('dashboard_update', {'type': 'todos'})
         update_memory(user_text=request.json.get("text"), action_taken=f"added '{text}' to todos", memory_update=memory_update)
         renderTodos()
         return jsonify({"response": response_text})
@@ -313,6 +316,7 @@ def voice_command():
         filtered_lines = [line for line in lines if text.lower() not in line.lower()]
         new_content = "\n".join(filtered_lines)
         write_note("todos.md", new_content)
+        socketio.emit('dashboard_update', {'type': 'todos'})
         update_memory(user_text=request.json.get("text"), action_taken=f"deleted '{text}' from todos", memory_update=memory_update)
         return jsonify({"response": response_text})
 
@@ -323,6 +327,7 @@ def voice_command():
             content += "\n"
         new_content = content + f"- [ ] {text}\n"
         write_note("bucketlist.md", new_content)
+        socketio.emit('dashboard_update', {'type': 'bucketlist'})
         update_memory(user_text=request.json.get("text"), action_taken=f"added '{text}' to bucket list", memory_update=memory_update)
         return jsonify({"response": response_text})
 
@@ -333,6 +338,7 @@ def voice_command():
         filtered_lines = [line for line in lines if text.lower() not in line.lower()]
         new_content = "\n".join(filtered_lines)
         write_note("bucketlist.md", new_content)
+        socketio.emit('dashboard_update', {'type': 'bucketlist'})
         update_memory(user_text=request.json.get("text"), action_taken=f"deleted '{text}' from bucket list", memory_update=memory_update)
         return jsonify({"response": response_text})
 
@@ -341,4 +347,4 @@ def voice_command():
     return jsonify({"response": response_text})
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    socketio.run(app, debug=True)
