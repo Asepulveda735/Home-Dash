@@ -1,3 +1,5 @@
+from calendar import calendar
+from datetime import datetime
 from flask import Flask, jsonify, request, render_template
 from dotenv import load_dotenv
 from flask_socketio import SocketIO
@@ -224,6 +226,7 @@ def voice_command():
     todos = read_note("todos.md")
     bucketlist = read_note("bucketlist.md")
     memory = read_note("memory.md")
+    calendar = read_note("calendar.md")
 
     # Step 2: system prompt now includes memory
     system_prompt = f"""You are Hubert, a personal AI assistant living on Ale's home dashboard. You are witty, warm, and helpful — like Jarvis from Iron Man but more casual and friendly. You know Ale well and get to know them better over time.
@@ -237,6 +240,9 @@ def voice_command():
     ## Ale's current bucket list:
     {bucketlist}
 
+    ## Ale's upcoming calendar events:
+    {calendar}
+
     ## Your personality:
     - You're conversational and natural, not robotic
     - You remember past conversations and reference them naturally
@@ -247,22 +253,27 @@ def voice_command():
 
     ## Your capabilities:
     - Manage todos and bucket list
+    - Add and delete calendar events
     - Answer questions conversationally
     - Make recommendations based on known preferences
     - Notice patterns ("You've added a lot of food places to your bucket list — into trying new restaurants?")
-    - Using previously learned information to answer questions and make recommendations
 
     ## Response format:
     Always respond with valid JSON and nothing else:
 
     For actions:
-    {{"action": "add_todo", "text": "item", "response": "confirmation message in your voice", "memory_update": "optional insight about Ale worth remembering"}}
-    {{"action": "delete_todo", "text": "item", "response": "confirmation message", "memory_update": null}}
-    {{"action": "add_bucket", "text": "item", "response": "confirmation message", "memory_update": "optional insight"}}
-    {{"action": "delete_bucket", "text": "item", "response": "confirmation message", "memory_update": null}}
+    {{"action": "add_todo", "text": "item", "response": "confirmation", "memory_update": null}}
+    {{"action": "delete_todo", "text": "item", "response": "confirmation", "memory_update": null}}
+    {{"action": "add_bucket", "text": "item", "response": "confirmation", "memory_update": null}}
+    {{"action": "delete_bucket", "text": "item", "response": "confirmation", "memory_update": null}}
+    {{"action": "add_event", "date": "YYYY-MM-DD", "time": "HH:MM", "title": "event title", "response": "confirmation", "memory_update": null}}
+    {{"action": "delete_event", "title": "event title", "response": "confirmation", "memory_update": null}}
+    {{"action": "none", "response": "your conversational response", "memory_update": null}}
 
     For conversation:
     {{"action": "none", "response": "your conversational response", "memory_update": "optional insight worth remembering"}}
+
+    For add_event, infer the date from context. Today is {datetime.now().strftime('%Y-%m-%d')}. If Ale says 'tomorrow' calculate it correctly. Time defaults to 09:00 if not specified.
 
     The memory_update field should only be filled when you learn something genuinely useful about Ale's preferences, habits, or interests. Not every interaction needs one."""
 
@@ -341,6 +352,29 @@ def voice_command():
         socketio.emit('dashboard_update', {'type': 'bucketlist'})
         update_memory(user_text=request.json.get("text"), action_taken=f"deleted '{text}' from bucket list", memory_update=memory_update)
         return jsonify({"response": response_text})
+    
+    elif action == "add_event":
+        date = action_json.get("date")
+        time = action_json.get("time", "09:00")
+        title = action_json.get("title")
+        content = read_note("calendar.md")
+        if content and not content.endswith("\n"):
+            content += "\n"
+        new_line = f"{date} {time} | {title}\n"
+        write_note("calendar.md", content + new_line)
+        socketio.emit('dashboard_update', {'type': 'calendar'})
+        update_memory(user_text=request.json.get("text"), action_taken=f"added event '{title}' on {date} at {time}", memory_update=memory_update)
+        return jsonify({"response": response_text})
+
+    elif action == "delete_event":
+        title = action_json.get("title")
+        content = read_note("calendar.md")
+        lines = content.split("\n")
+        filtered = [line for line in lines if title.lower() not in line.lower()]
+        write_note("calendar.md", "\n".join(filtered))
+        socketio.emit('dashboard_update', {'type': 'calendar'})
+        update_memory(user_text=request.json.get("text"), action_taken=f"deleted event '{title}'", memory_update=memory_update)
+        return jsonify({"response": response_text})
 
     response_text = action_json.get("response", "I'm not sure how to help with that.")
     update_memory(user_text=request.json.get("text"), action_taken="conversational response", memory_update=memory_update)
@@ -368,6 +402,42 @@ def get_markets():
     }
     response = requests.get(url, params=params)
     return jsonify(response.json())
+
+@app.route("/api/events", methods=["GET"])
+def get_events():
+    content = read_note("calendar.md")
+    events = []
+    for line in content.split("\n"):
+        if "|" in line and line.strip() and not line.startswith("#"):
+            parts = line.strip().split(" | ", 1)
+            if len(parts) == 2:
+                datetime_str = parts[0].strip()
+                title = parts[1].strip()
+                events.append({"datetime": datetime_str, "title": title})
+    events.sort(key=lambda e: e["datetime"])
+    return jsonify(events)
+#Calander
+@app.route("/api/events", methods=["POST"])
+def add_event():
+    date = request.json.get("date")
+    time = request.json.get("time")
+    title = request.json.get("title")
+    content = read_note("calendar.md")
+    if content and not content.endswith("\n"):
+        content += "\n"
+    new_line = f"{date} {time} | {title}\n"
+    write_note("calendar.md", content + new_line)
+    socketio.emit('dashboard_update', {'type': 'calendar'})
+    return jsonify({"status": "ok"})
+
+@app.route("/api/events/<path:event_id>", methods=["DELETE"])
+def delete_event(event_id):
+    content = read_note("calendar.md")
+    lines = content.split("\n")
+    filtered = [line for line in lines if event_id not in line]
+    write_note("calendar.md", "\n".join(filtered))
+    socketio.emit('dashboard_update', {'type': 'calendar'})
+    return jsonify({"status": "ok"})
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)

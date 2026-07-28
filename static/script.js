@@ -2,15 +2,13 @@
 const socket = io();
 
 socket.on('dashboard_update', function(data) {
-    if (data.type === 'todos') {
-        renderTodos();
-    }
-    if (data.type === 'bucketlist') {
-        renderBucketList();
-    }
+    if (data.type === 'todos') renderTodos();
+    if (data.type === 'bucketlist') renderBucketList();
+    if (data.type === 'calendar') loadCalendar();
     if (data.type === 'all') {
         renderTodos();
         renderBucketList();
+        loadCalendar();
     }
 });
 // ---- Weather ----
@@ -255,7 +253,150 @@ async function loadMarkets() {
 loadMarkets();
 setInterval(loadMarkets, 60000);
 
+//calander
+// ---- Calendar ----
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let selectedDate = null;
+let allEvents = [];
 
+async function loadCalendar() {
+    try {
+        const res = await fetch('/api/events');
+        allEvents = await res.json();
+    } catch {
+        allEvents = JSON.parse(localStorage.getItem('cal_events') || '[]');
+    }
+    localStorage.setItem('cal_events', JSON.stringify(allEvents));
+    renderCalendarGrid();
+    renderUpcoming();
+}
+
+function renderCalendarGrid() {
+    const monthNames = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE',
+                        'JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+    document.getElementById('cal-month-label').textContent = `${monthNames[calMonth]} ${calYear}`;
+
+    const firstDay = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const today = new Date();
+    const eventDates = allEvents.map(e => e.datetime.split(' ')[0]);
+
+    const container = document.getElementById('cal-days');
+    container.innerHTML = '';
+
+    for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'cal-day empty';
+        container.appendChild(empty);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${calYear}-${String(calMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const div = document.createElement('div');
+        div.className = 'cal-day';
+        div.textContent = d;
+
+        if (d === today.getDate() && calMonth === today.getMonth() && calYear === today.getFullYear()) {
+            div.classList.add('today');
+        }
+        if (dateStr === selectedDate) div.classList.add('selected');
+        if (eventDates.includes(dateStr)) div.classList.add('has-event');
+
+        div.onclick = () => selectDay(dateStr);
+        container.appendChild(div);
+    }
+}
+
+function selectDay(dateStr) {
+    selectedDate = dateStr;
+    const [year, month, day] = dateStr.split('-');
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    document.getElementById('cal-selected-label').textContent = `${months[parseInt(month)-1]} ${parseInt(day)}, ${year}`;
+
+    const dayEvents = allEvents.filter(e => e.datetime.startsWith(dateStr));
+    const list = document.getElementById('cal-event-list');
+    list.innerHTML = '';
+
+    dayEvents.forEach(e => {
+        const time = e.datetime.split(' ')[1];
+        const li = document.createElement('li');
+        li.className = 'event-item';
+        li.innerHTML = `
+            <div style="display:flex;align-items:center;">
+                <div class="event-dot"></div>
+                <span class="event-time">${time}</span>
+                <span>${e.title}</span>
+            </div>
+            <button onclick="deleteEvent('${e.datetime} | ${e.title}')">✕</button>`;
+        list.appendChild(li);
+    });
+
+    renderCalendarGrid();
+}
+
+async function addEvent() {
+    const time = document.getElementById('event-time').value;
+    const title = document.getElementById('event-title').value.trim();
+    if (!selectedDate || !title) return;
+
+    await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: selectedDate, time, title })
+    });
+
+    document.getElementById('event-title').value = '';
+    await loadCalendar();
+    selectDay(selectedDate);
+}
+
+async function deleteEvent(eventId) {
+    await fetch(`/api/events/${encodeURIComponent(eventId)}`, { method: 'DELETE' });
+    await loadCalendar();
+    if (selectedDate) selectDay(selectedDate);
+}
+
+function renderUpcoming() {
+    const now = new Date();
+    const upcoming = allEvents
+        .filter(e => new Date(e.datetime) >= now)
+        .slice(0, 6);
+
+    const list = document.getElementById('cal-upcoming-list');
+    list.innerHTML = '';
+
+    if (upcoming.length === 0) {
+        list.innerHTML = '<li style="color:#333;font-size:11px;padding:7px 0;">No upcoming events</li>';
+        return;
+    }
+
+    upcoming.forEach(e => {
+        const [date, time] = e.datetime.split(' ');
+        const [year, month, day] = date.split('-');
+        const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+        const li = document.createElement('li');
+        li.className = 'event-item';
+        li.innerHTML = `
+            <div style="display:flex;align-items:center;">
+                <div class="event-dot"></div>
+                <span class="event-time">${months[parseInt(month)-1]} ${parseInt(day)} · ${time}</span>
+                <span>${e.title}</span>
+            </div>
+            <button onclick="deleteEvent('${e.datetime} | ${e.title}')">✕</button>`;
+        list.appendChild(li);
+    });
+}
+
+function changeMonth(dir) {
+    calMonth += dir;
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+    if (calMonth < 0) { calMonth = 11; calYear--; }
+    renderCalendarGrid();
+}
+
+loadCalendar();
+setInterval(loadCalendar, 60000);
 
 // ---- Initial load ----
 loadWeather();

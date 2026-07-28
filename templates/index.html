@@ -61,10 +61,39 @@
                 <span class="sys-status">ONLINE</span>
             </div>
             <div class="dashboard-divider"></div>
+
             <div class="dashboard-container">
                 <div class="tile" style="grid-column: span 2;">
-                    <h2>Calendar</h2>
-                    <p style="color:#444;font-size:12px;">Coming soon</p>
+                    <div class="cal-nav">
+                        <button class="cal-arrow" onclick="changeMonth(-1)">←</button>
+                        <span id="cal-month-label" class="cal-month-title"></span>
+                        <button class="cal-arrow" onclick="changeMonth(1)">→</button>
+                    </div>
+                    <div class="cal-day-names">
+                        <div class="cal-day-name">SUN</div>
+                        <div class="cal-day-name">MON</div>
+                        <div class="cal-day-name">TUE</div>
+                        <div class="cal-day-name">WED</div>
+                        <div class="cal-day-name">THU</div>
+                        <div class="cal-day-name">FRI</div>
+                        <div class="cal-day-name">SAT</div>
+                    </div>
+                    <div class="cal-grid" id="cal-days"></div>
+                </div>
+
+                <div class="tile" style="grid-column: span 2;" id="cal-selected-tile">
+                    <h2 id="cal-selected-label">SELECT A DAY</h2>
+                    <div class="input-row">
+                        <input type="time" id="event-time" value="09:00">
+                        <input type="text" id="event-title" placeholder="Event name...">
+                        <button onclick="addEvent()">Add</button>
+                    </div>
+                    <ul id="cal-event-list"></ul>
+                </div>
+
+                <div class="tile" style="grid-column: span 2;">
+                    <h2>Upcoming</h2>
+                    <ul id="cal-upcoming-list"></ul>
                 </div>
             </div>
         </div>
