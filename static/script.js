@@ -38,6 +38,16 @@ async function loadTransit() {
 
     document.getElementById('transit-info').innerHTML = transitMessage;
 }
+// ---- Clock ----
+function updateClock() {
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const date = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
+    document.getElementById('clock').textContent = time;
+    document.getElementById('date-display').textContent = date;
+}
+updateClock();
+setInterval(updateClock, 1000);
 
 // ---- To-Do List ----
 async function renderTodos() {

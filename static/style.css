@@ -1,65 +1,166 @@
-body {
-    background-color: #42254b;
-    color: #ffffff;
-    font-family: Arial, sans-serif;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap');
+
+* {
+    box-sizing: border-box;
     margin: 0;
-    padding: 20px;
+    padding: 0;
 }
 
-h1 {
-    text-align: center;
-    font-size: 2em;
-    margin-bottom: 20px;
+body {
+    background-color: #0a0808;
+    color: #e0d4f7;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    min-height: 100vh;
+    overflow-x: hidden;
 }
 
-.dashboard-container {
+/* ---- Scan lines ---- */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(111,40,190,0.7), transparent);
+    z-index: 100;
+}
+
+body::after {
+    content: '';
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(111,40,190,0.4), transparent);
+    z-index: 100;
+}
+
+/* ---- Header ---- */
+.dashboard-header {
+    padding: 20px 24px 0;
     display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 4px;
 }
 
+.sys-label {
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    color: #6F28BE;
+    font-weight: 400;
+}
+
+.sys-status {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: #6F28BE;
+    opacity: 0.7;
+    font-weight: 400;
+}
+
+.dashboard-time {
+    font-size: 56px;
+    font-weight: 200;
+    color: #f0e8ff;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    padding: 0 24px;
+}
+
+.dashboard-date {
+    font-size: 9px;
+    color: #6F28BE;
+    letter-spacing: 0.14em;
+    padding: 4px 24px 0;
+    font-weight: 400;
+}
+
+.dashboard-divider {
+    height: 1px;
+    background: linear-gradient(90deg, #6F28BE 40%, transparent);
+    margin: 16px 24px;
+}
+
+/* ---- Main container ---- */
+.dashboard-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 0 24px 24px;
+}
+
+/* ---- Tiles ---- */
 .tile {
-    flex: 1;
-    min-width: 250px;
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 20px;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: #111111;
+    border-radius: 8px;
+    padding: 14px 16px;
+    border-left: 2px solid #6F28BE;
 }
 
-h2 {
-    color: #ffffff;
-    font-size: 1.5em;
-    margin-top: 0;
+.tile h2 {
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    color: #6F28BE;
+    font-weight: 400;
+    margin-bottom: 8px;
+    text-transform: uppercase;
 }
 
-#weather-info, #transit-info {
-    font-size: 1.2em;
-    white-space: pre-line;
+#weather-info,
+#transit-info {
+    font-size: 13px;
+    font-weight: 400;
+    color: #e0d4f7;
+    line-height: 1.6;
 }
+
+/* ---- Todo and Bucket List ---- */
 .input-row {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     margin-bottom: 10px;
 }
 
 .input-row input {
     flex: 1;
-    padding: 8px;
-    border-radius: 8px;
-    border: none;
-    font-size: 1em;
+    padding: 7px 10px;
+    border-radius: 6px;
+    border: 1px solid #222;
+    background: #0a0808;
+    color: #e0d4f7;
+    font-size: 11px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    outline: none;
+}
+
+.input-row input:focus {
+    border-color: #6F28BE;
+}
+
+.input-row input::placeholder {
+    color: #333;
 }
 
 .input-row button {
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: none;
-    background-color: #ffffff;
-    color: #42254b;
-    font-weight: bold;
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid #6F28BE;
+    background: transparent;
+    color: #6F28BE;
+    font-size: 10px;
+    letter-spacing: 0.08em;
     cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.15s;
+}
+
+.input-row button:hover {
+    background: rgba(111,40,190,0.15);
 }
 
 ul {
@@ -72,43 +173,94 @@ li {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: rgba(255, 255, 255, 0.08);
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    font-size: 1.1em;
+    padding: 7px 0;
+    border-bottom: 1px solid #1a1a1a;
+    font-size: 12px;
+    color: #c4b8e0;
+}
+
+li:last-child {
+    border-bottom: none;
 }
 
 li button {
     background: none;
     border: none;
-    color: #ff8080;
-    font-size: 1.2em;
+    color: #333;
+    font-size: 14px;
     cursor: pointer;
+    padding: 0 2px;
+    transition: color 0.15s;
+}
+
+li button:hover {
+    color: #6F28BE;
+}
+
+/* ---- Voice tile ---- */
+#voice-tile {
+    grid-column: span 2;
 }
 
 #mic-button {
     width: 100%;
-    padding: 15px;
-    font-size: 1.2em;
-    border-radius: 12px;
-    border: none;
-    background-color: rgba(255, 255, 255, 0.15);
-    color: #ffffff;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(111,40,190,0.3);
+    border-left: 2px solid #6F28BE;
+    background: #0a0808;
+    color: #9b7abf;
+    font-size: 10px;
+    letter-spacing: 0.1em;
     cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
     margin-bottom: 10px;
+    text-align: left;
+    transition: background 0.15s, color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-#mic-button:active {
-    background-color: rgba(255, 255, 255, 0.3);
+#mic-button::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #6F28BE;
+    flex-shrink: 0;
+}
+
+#mic-button:hover {
+    background: rgba(111,40,190,0.08);
+    color: #c4a0ff;
 }
 
 #voice-status {
-    font-size: 0.9em;
-    opacity: 0.7;
+    font-size: 10px;
+    color: #333;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
 }
 
 #voice-response {
-    font-size: 1em;
-    margin-top: 10px;
+    font-size: 12px;
+    color: #9b7abf;
+    line-height: 1.5;
+    min-height: 20px;
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0a0808;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #6F28BE;
+    border-radius: 2px;
 }

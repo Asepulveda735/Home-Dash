@@ -2,12 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Home Dashboard</title>
+    <title>Hubert</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
 </head>
 <body>
-    <h1>My Dashboard</h1>
+    <div class="dashboard-header">
+        <span class="sys-label">HUBERT / SYS</span>
+        <span class="sys-status">ONLINE</span>
+    </div>
+    <div class="dashboard-time" id="clock">09:41</div>
+    <div class="dashboard-date" id="date-display">TUESDAY · JULY 28, 2026</div>
+    <div class="dashboard-divider"></div>
 
     <div class="dashboard-container">
         <div class="tile" id="weather-tile">
@@ -37,9 +43,10 @@
             </div>
             <ul id="bucketlist-list"></ul>
         </div>
+
         <div class="tile" id="voice-tile">
             <h2>Assistant</h2>
-            <button id="mic-button" onclick="startListening()">🎤 Tap to Speak</button>
+            <button id="mic-button" onclick="startListening()">TAP TO SPEAK WITH HUBERT</button>
             <p id="voice-status">Ready</p>
             <p id="voice-response"></p>
         </div>
