@@ -208,6 +208,55 @@ document.addEventListener('touchend', e => {
     }
 });
 
+// ---- Markets ----
+async function loadMarkets() {
+    // crypto
+    const cryptoRes = await fetch('/api/crypto');
+    const crypto = await cryptoRes.json();
+
+    const btcChange = crypto.bitcoin.usd_24h_change.toFixed(2);
+    const ethChange = crypto.ethereum.usd_24h_change.toFixed(2);
+
+    document.getElementById('btc-price').className = 'price-value';
+    document.getElementById('btc-price').textContent = `$${crypto.bitcoin.usd.toLocaleString()}`;
+    document.getElementById('btc-change').className = btcChange >= 0 ? 'change-up' : 'change-down';
+    document.getElementById('btc-change').textContent = `${btcChange >= 0 ? '▲' : '▼'} ${Math.abs(btcChange)}% 24h`;
+
+    document.getElementById('eth-price').className = 'price-value';
+    document.getElementById('eth-price').textContent = `$${crypto.ethereum.usd.toLocaleString()}`;
+    document.getElementById('eth-change').className = ethChange >= 0 ? 'change-up' : 'change-down';
+    document.getElementById('eth-change').textContent = `${ethChange >= 0 ? '▲' : '▼'} ${Math.abs(ethChange)}% 24h`;
+
+    // S&P 500
+    const spyRes = await fetch('/api/markets');
+    const spy = spyRes.ok ? await spyRes.json() : null;
+
+    if (spy && spy['Global Quote']) {
+        const quote = spy['Global Quote'];
+        const price = parseFloat(quote['05. price']).toFixed(2);
+        const change = parseFloat(quote['09. change']).toFixed(2);
+        const changePct = quote['10. change percent'];
+        const open = parseFloat(quote['02. open']).toFixed(2);
+        const high = parseFloat(quote['03. high']).toFixed(2);
+        const low = parseFloat(quote['04. low']).toFixed(2);
+        const vol = parseInt(quote['06. volume']).toLocaleString();
+
+        document.getElementById('spy-price').className = 'price-value';
+        document.getElementById('spy-price').textContent = `$${parseFloat(price).toLocaleString()}`;
+        document.getElementById('spy-change').className = change >= 0 ? 'change-up' : 'change-down';
+        document.getElementById('spy-change').textContent = `${change >= 0 ? '▲' : '▼'} $${Math.abs(change)} (${changePct}) today`;
+        document.getElementById('spy-open').textContent = `OPEN · $${open}`;
+        document.getElementById('spy-high').textContent = `HIGH · $${high}`;
+        document.getElementById('spy-low').textContent = `LOW · $${low}`;
+        document.getElementById('spy-vol').textContent = `VOL · ${vol}`;
+}
+}
+
+loadMarkets();
+setInterval(loadMarkets, 60000);
+
+
+
 // ---- Initial load ----
 loadWeather();
 loadTransit();

@@ -15,6 +15,7 @@ load_dotenv()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 claude_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 OWM_API_KEY = os.getenv("OWM_API_KEY")
+ALPHA_VANTAGE_KEY = os.getenv("ALPHA_VANTAGE_KEY")
 CTA_API_KEY = os.getenv("CTA_API_KEY")  # or whatever transit key you got
 OBSIDIAN_API_KEY = os.getenv("OBSIDIAN_API_KEY")
 OBSIDIAN_PORT = os.getenv("OBSIDIAN_PORT", "27124")
@@ -344,6 +345,29 @@ def voice_command():
     response_text = action_json.get("response", "I'm not sure how to help with that.")
     update_memory(user_text=request.json.get("text"), action_taken="conversational response", memory_update=memory_update)
     return jsonify({"response": response_text})
+
+@app.route("/api/crypto")
+def get_crypto():
+    ids = "bitcoin,ethereum"
+    url = "https://api.coingecko.com/api/v3/simple/price"
+    params = {
+        "ids": ids,
+        "vs_currencies": "usd",
+        "include_24hr_change": "true"
+    }
+    response = requests.get(url, params=params)
+    return jsonify(response.json())
+
+@app.route("/api/markets")
+def get_markets():
+    url = "https://www.alphavantage.co/query"
+    params = {
+        "function": "GLOBAL_QUOTE",
+        "symbol": "SPY",
+        "apikey": ALPHA_VANTAGE_KEY
+    }
+    response = requests.get(url, params=params)
+    return jsonify(response.json())
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)

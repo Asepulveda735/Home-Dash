@@ -69,17 +69,41 @@
             </div>
         </div>
 
-        <!-- Page 3: Markets -->
+       <!-- Page 3: Markets -->
         <div class="page" id="page-stocks">
             <div class="dashboard-header">
                 <span class="sys-label">HUBERT / MARKETS</span>
                 <span class="sys-status">ONLINE</span>
             </div>
+            <div class="dashboard-time" id="markets-time"></div>
+            <div class="dashboard-date" id="markets-date"></div>
             <div class="dashboard-divider"></div>
+
             <div class="dashboard-container">
-                <div class="tile" style="grid-column: span 2;">
-                    <h2>Markets</h2>
-                    <p style="color:#444;font-size:12px;">Coming soon</p>
+                <div class="tile" id="btc-tile">
+                    <h2>Bitcoin</h2>
+                    <p id="btc-price">Loading...</p>
+                    <p id="btc-change"></p>
+                </div>
+                <div class="tile" id="eth-tile">
+                    <h2>Ethereum</h2>
+                    <p id="eth-price">Loading...</p>
+                    <p id="eth-change"></p>
+                </div>
+                <div class="tile" style="grid-column: span 2;" id="spy-tile">
+                    <h2>S&amp;P 500 — SPY</h2>
+                    <div class="spy-row">
+                        <div>
+                            <p id="spy-price" class="price-value">Loading...</p>
+                            <p id="spy-change"></p>
+                        </div>
+                        <div class="spy-detail">
+                            <p id="spy-open"></p>
+                            <p id="spy-high"></p>
+                            <p id="spy-low"></p>
+                            <p id="spy-vol"></p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

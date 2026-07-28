@@ -311,3 +311,38 @@ li button:hover {
     background: #6F28BE;
     border-radius: 2px;
 }
+
+.change-up {
+    font-size: 11px;
+    color: #4caf7d;
+    letter-spacing: 0.06em;
+    margin-top: 4px;
+}
+
+.change-down {
+    font-size: 11px;
+    color: #e05555;
+    letter-spacing: 0.06em;
+    margin-top: 4px;
+}
+
+.price-value {
+    font-size: 22px;
+    font-weight: 200;
+    color: #f0e8ff;
+    letter-spacing: -0.01em;
+}
+
+.spy-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.spy-detail p {
+    font-size: 10px;
+    color: #444;
+    margin-top: 3px;
+    letter-spacing: 0.04em;
+    text-align: right;
+}
