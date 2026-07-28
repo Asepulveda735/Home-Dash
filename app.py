@@ -267,23 +267,22 @@ def voice_command():
 
     # Step 3: call Claude
     # TODO: use claude_client.messages.create() to send the voice command
-    # model: "claude-sonnet-4-6"
+    # model="claude-haiku-4-5",
     # max_tokens: 256
     # messages: [{"role": "user", "content": text}]
     # system: system_prompt
     response = claude_client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=256,
         system=system_prompt,
-        messages=[
-            {"role": "user", "content": text}
-        ]
+        messages=[{"role": "user", "content": text}]
     )
 
     # Step 4: parse Claude's response as JSON
     # TODO: parse the response text as JSON
     try:
-        action_data = response.content[0].text  # Assuming the response is in the first message
+        action_data = response.content[0].text
+        action_data = action_data.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         action_json = json.loads(action_data)
     except Exception as e:
         return jsonify({"error": "Failed to parse Claude's response as JSON", "details": str(e)}), 400
