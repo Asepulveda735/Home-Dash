@@ -495,3 +495,20 @@ li button:hover {
 #event-time:focus {
     border-color: #6F28BE;
 }
+
+/*temp */
+.disk-bar-wrap {
+    width: 80px;
+    height: 6px;
+    background: #1a1a1a;
+    border-radius: 3px;
+    overflow: hidden;
+    align-self: center;
+}
+
+.disk-bar {
+    height: 100%;
+    background: #6F28BE;
+    border-radius: 3px;
+    transition: width 0.3s;
+}

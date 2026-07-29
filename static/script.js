@@ -36,6 +36,40 @@ async function loadTransit() {
 
     document.getElementById('transit-info').innerHTML = transitMessage;
 }
+// ---- ElevenLabs TTS ----
+async function speakWithElevenLabs(text) {
+    try {
+        const res = await fetch('/api/speak', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        });
+
+        const data = await res.json();
+        if (data.audio) {
+            const audio = new Audio(`data:audio/mpeg;base64,${data.audio}`);
+            audio.volume = 1.0;
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                    console.log('Autoplay blocked:', e);
+                    // fallback to browser TTS
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 0.88;
+                    utterance.pitch = 0.85;
+                    window.speechSynthesis.speak(utterance);
+                });
+            }
+        }
+    } catch (e) {
+        console.log('ElevenLabs error:', e);
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.88;
+        utterance.pitch = 0.85;
+        window.speechSynthesis.speak(utterance);
+    }
+}
+
 // ---- Clock ----
 function updateClock() {
     const now = new Date();
@@ -141,19 +175,7 @@ function startListening() {
         document.getElementById('voice-response').textContent = data.response;
 
         if (data.response) {
-            const utterance = new SpeechSynthesisUtterance(data.response);
-            utterance.rate = 0.88;
-            utterance.pitch = 0.85;
-            utterance.volume = 1.0;
-
-            const voices = window.speechSynthesis.getVoices();
-            const preferred = voices.find(v => v.name.includes('Daniel')) 
-                || voices.find(v => v.name.includes('Google UK English Male'))
-                || voices.find(v => v.lang === 'en-GB')
-                || voices.find(v => v.lang.startsWith('en'));
-
-            if (preferred) utterance.voice = preferred;
-            window.speechSynthesis.speak(utterance);
+            await speakWithElevenLabs(data.response);
         }
         if (data.action && data.action !== 'none') {
             renderTodos();
@@ -176,7 +198,7 @@ function startListening() {
 
 // ---- Page navigation ----
 let currentPage = 0;
-const totalPages = 3;
+const totalPages = 4; // Update this if you add more pages
 let touchStartX = 0;
 
 function goToPage(index) {
@@ -247,7 +269,7 @@ async function loadMarkets() {
         document.getElementById('spy-high').textContent = `HIGH · $${high}`;
         document.getElementById('spy-low').textContent = `LOW · $${low}`;
         document.getElementById('spy-vol').textContent = `VOL · ${vol}`;
-}
+    }
 }
 
 loadMarkets();
@@ -397,6 +419,50 @@ function changeMonth(dir) {
 
 loadCalendar();
 setInterval(loadCalendar, 60000);
+
+
+//temp page
+// ---- System monitor ----
+async function loadSystem() {
+    try {
+        const res = await fetch('/api/system');
+        const data = await res.json();
+
+        document.getElementById('system-uptime').textContent = `UP ${data.uptime}`;
+        document.getElementById('system-ip').textContent = `IP · ${data.ip}`;
+
+        const cpuEl = document.getElementById('cpu-percent');
+        cpuEl.textContent = `${data.cpu_percent}%`;
+        cpuEl.className = data.cpu_percent > 80 ? 'price-value change-down' : 'price-value';
+
+        if (data.cpu_temp) {
+            const tempEl = document.getElementById('cpu-temp');
+            tempEl.textContent = `${data.cpu_temp}°C`;
+            tempEl.className = data.cpu_temp > 70 ? 'change-down' : 'change-up';
+        }
+
+        const ramEl = document.getElementById('ram-percent');
+        ramEl.textContent = `${data.ram_percent}%`;
+        ramEl.className = data.ram_percent > 80 ? 'price-value change-down' : 'price-value';
+        document.getElementById('ram-detail').textContent = `${data.ram_used}GB / ${data.ram_total}GB`;
+
+        document.getElementById('disk-percent').textContent = `${data.disk_percent}%`;
+        document.getElementById('disk-detail').textContent = `${data.disk_used}GB / ${data.disk_total}GB used`;
+        document.getElementById('disk-bar').style.width = `${data.disk_percent}%`;
+    } catch (e) {
+        console.log('System stats not available on this device');
+    }
+}
+
+loadSystem();
+setInterval(loadSystem, 10000);
+
+
+// unlock audio context on first tap
+document.addEventListener('click', () => {
+    const audio = new Audio();
+    audio.play().catch(() => {});
+}, { once: true });
 
 // ---- Initial load ----
 loadWeather();

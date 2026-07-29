@@ -137,6 +137,43 @@
             </div>
         </div>
 
+
+        <!-- Page 4: System -->
+        <div class="page" id="page-system">
+            <div class="dashboard-header">
+                <span class="sys-label">HUBERT / SYSTEM</span>
+                <span class="sys-status">ONLINE</span>
+            </div>
+            <div class="dashboard-time" id="system-uptime"></div>
+            <div class="dashboard-date" id="system-ip"></div>
+            <div class="dashboard-divider"></div>
+
+            <div class="dashboard-container">
+                <div class="tile" id="cpu-tile">
+                    <h2>CPU</h2>
+                    <p id="cpu-percent" class="price-value">--%</p>
+                    <p id="cpu-temp" class="change-up"></p>
+                </div>
+                <div class="tile" id="ram-tile">
+                    <h2>Memory</h2>
+                    <p id="ram-percent" class="price-value">--%</p>
+                    <p id="ram-detail" style="font-size:10px;color:#444;margin-top:4px;"></p>
+                </div>
+                <div class="tile" style="grid-column: span 2;" id="disk-tile">
+                    <h2>Storage</h2>
+                    <div class="spy-row">
+                        <div>
+                            <p id="disk-percent" class="price-value">--%</p>
+                            <p id="disk-detail" style="font-size:10px;color:#444;margin-top:4px;"></p>
+                        </div>
+                        <div class="disk-bar-wrap">
+                            <div id="disk-bar" class="disk-bar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Dot navigation -->
@@ -144,6 +181,7 @@
         <span class="dot active" onclick="goToPage(0)"></span>
         <span class="dot" onclick="goToPage(1)"></span>
         <span class="dot" onclick="goToPage(2)"></span>
+        <span class="dot" onclick="goToPage(3)"></span>
     </div>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>

@@ -8,6 +8,10 @@ import os
 import json
 import anthropic
 import urllib3
+import base64
+import psutil
+import socket
+import time
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
@@ -17,6 +21,14 @@ load_dotenv()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 claude_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 OWM_API_KEY = os.getenv("OWM_API_KEY")
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_REPO = os.getenv("GITHUB_REPO")
+GITHUB_HEADERS = {
+    "Authorization": f"Bearer {GITHUB_TOKEN}",
+    "Accept": "application/vnd.github+json"
+}
 ALPHA_VANTAGE_KEY = os.getenv("ALPHA_VANTAGE_KEY")
 CTA_API_KEY = os.getenv("CTA_API_KEY")  # or whatever transit key you got
 OBSIDIAN_API_KEY = os.getenv("OBSIDIAN_API_KEY")
@@ -34,15 +46,34 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 from flask import render_template
 
 def read_note(filename):
-    response = requests.get(f"{OBSIDIAN_BASE_URL}/vault/{filename}", headers=OBSIDIAN_HEADERS, verify=False)
-    print("Read status:", response.status_code)
-    print("Read body:", repr(response.text))
-    print("Headers sent:", OBSIDIAN_HEADERS)
-    return response.text
+    try:
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{filename}"
+        response = requests.get(url, headers=GITHUB_HEADERS)
+        if response.status_code == 200:
+            content = base64.b64decode(response.json()["content"]).decode("utf-8")
+            return content
+        return ""
+    except Exception as e:
+        print(f"Error reading {filename}:", e)
+        return ""
 
 def write_note(filename, content):
-    response = requests.put(f"{OBSIDIAN_BASE_URL}/vault/{filename}", headers=OBSIDIAN_HEADERS, data=content, verify=False)
-    return response.text
+    try:
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{filename}"
+        # get current SHA (needed for updates)
+        get_response = requests.get(url, headers=GITHUB_HEADERS)
+        sha = get_response.json().get("sha") if get_response.status_code == 200 else None
+
+        payload = {
+            "message": f"Hubert update: {filename}",
+            "content": base64.b64encode(content.encode("utf-8")).decode("utf-8")
+        }
+        if sha:
+            payload["sha"] = sha
+
+        requests.put(url, headers=GITHUB_HEADERS, json=payload)
+    except Exception as e:
+        print(f"Error writing {filename}:", e)
 
 def update_memory(user_text, action_taken, memory_update=None):
     memory = read_note("memory.md")
@@ -317,7 +348,6 @@ def voice_command():
         write_note("todos.md", new_content)
         socketio.emit('dashboard_update', {'type': 'todos'})
         update_memory(user_text=request.json.get("text"), action_taken=f"added '{text}' to todos", memory_update=memory_update)
-        renderTodos()
         return jsonify({"response": response_text})
 
     elif action == "delete_todo":
@@ -429,7 +459,7 @@ def add_event():
     write_note("calendar.md", content + new_line)
     socketio.emit('dashboard_update', {'type': 'calendar'})
     return jsonify({"status": "ok"})
-
+#temp page
 @app.route("/api/events/<path:event_id>", methods=["DELETE"])
 def delete_event(event_id):
     content = read_note("calendar.md")
@@ -438,6 +468,74 @@ def delete_event(event_id):
     write_note("calendar.md", "\n".join(filtered))
     socketio.emit('dashboard_update', {'type': 'calendar'})
     return jsonify({"status": "ok"})
+
+#ellevlabs TTS
+@app.route("/api/system")
+def get_system():
+    cpu_percent = psutil.cpu_percent(interval=1)
+    ram = psutil.virtual_memory()
+    disk = psutil.disk_usage('/')
+    uptime_seconds = time.time() - psutil.boot_time()
+    uptime_hours = int(uptime_seconds // 3600)
+    uptime_minutes = int((uptime_seconds % 3600) // 60)
+
+    try:
+        temp = psutil.sensors_temperatures()
+        cpu_temp = temp['cpu_thermal'][0].current if 'cpu_thermal' in temp else None
+    except:
+        cpu_temp = None
+
+    try:
+        ip = socket.gethostbyname(socket.gethostname())
+    except:
+        ip = "unknown"
+
+    return jsonify({
+        "cpu_percent": cpu_percent,
+        "cpu_temp": round(cpu_temp, 1) if cpu_temp else None,
+        "ram_percent": ram.percent,
+        "ram_used": round(ram.used / 1024 / 1024 / 1024, 2),
+        "ram_total": round(ram.total / 1024 / 1024 / 1024, 2),
+        "disk_percent": disk.percent,
+        "disk_used": round(disk.used / 1024 / 1024 / 1024, 1),
+        "disk_total": round(disk.total / 1024 / 1024 / 1024, 1),
+        "uptime": f"{uptime_hours}h {uptime_minutes}m",
+        "ip": ip
+    })
+
+@app.route("/api/speak", methods=["POST"])
+def speak():
+    text = request.json.get("text")
+    
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
+    
+    headers = {
+        "xi-api-key": ELEVENLABS_API_KEY,
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "text": text,
+        "model_id": "eleven_turbo_v2",
+        "voice_settings": {
+            "stability": 0.5,
+            "similarity_boost": 0.75,
+            "style": 0.3,
+            "use_speaker_boost": True
+        }
+    }
+    
+    response = requests.post(url, headers=headers, json=payload)
+    print("ElevenLabs status:", response.status_code)
+    print("ElevenLabs response:", response.text[:300])
+    
+    if response.status_code == 200:
+        audio_data = base64.b64encode(response.content).decode('utf-8')
+        return jsonify({"audio": audio_data})
+    else:
+        return jsonify({"error": "TTS failed", "details": response.text}), 500
+
+
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
