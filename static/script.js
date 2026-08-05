@@ -218,16 +218,18 @@ function goToPage(index) {
 // Touch swipe detection
 document.addEventListener('touchstart', e => {
     touchStartX = e.touches[0].clientX;
-});
+}, { passive: true });
 
 document.addEventListener('touchend', e => {
     const diff = touchStartX - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 50) {
-        if (diff > 0) goToPage(currentPage + 1); // swipe left
-        else goToPage(currentPage - 1);           // swipe right
+        e.preventDefault();
+        if (diff > 0) goToPage(currentPage + 1);
+        else goToPage(currentPage - 1);
     }
-});
+}, { passive: false });
 
+document.addEventListener('contextmenu', e => e.preventDefault());
 // ---- Markets ----
 async function loadMarkets() {
     // crypto

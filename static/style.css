@@ -512,3 +512,14 @@ li button:hover {
     border-radius: 3px;
     transition: width 0.3s;
 }
+
+* {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+}
