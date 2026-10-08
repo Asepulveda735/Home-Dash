@@ -1,5 +1,6 @@
 from calendar import calendar
 from datetime import datetime
+from urllib import response
 from flask import Flask, jsonify, request, render_template
 from dotenv import load_dotenv
 from flask_socketio import SocketIO
@@ -314,21 +315,18 @@ def voice_command():
     # max_tokens: 256
     # messages: [{"role": "user", "content": text}]
     # system: system_prompt
-    response = claude_client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=256,
-        system=system_prompt,
-        messages=[{"role": "user", "content": text}]
-    )
-
-    # Step 4: parse Claude's response as JSON
-    # TODO: parse the response text as JSON
+    response = requests.post("http://localhost:11434/api/generate", json={
+        "model": "llama3.2",
+        "prompt": f"{system_prompt}\n\nUser: {text}",
+        "stream": False
+    })
+    # Step 4: parse response as JSON
     try:
-        action_data = response.content[0].text
+        action_data = response.json()["response"]
         action_data = action_data.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         action_json = json.loads(action_data)
     except Exception as e:
-        return jsonify({"error": "Failed to parse Claude's response as JSON", "details": str(e)}), 400
+        return jsonify({"error": "Failed to parse response as JSON", "details": str(e)}), 400
 
     # Step 5: execute the action
     # TODO: based on action field, call the right function
