@@ -1,6 +1,21 @@
 // ---- WebSockets ----
 const socket = io();
 
+// Escape text before putting it inside an HTML string, so it shows as text and never runs as code
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+}
+
+// Build a ✕ button that calls onDelete when tapped
+function makeDeleteButton(onDelete) {
+    const button = document.createElement('button');
+    button.textContent = '✕';
+    button.addEventListener('click', onDelete);
+    return button;
+}
+
 socket.on('dashboard_update', function(data) {
     if (data.type === 'todos') renderTodos();
     if (data.type === 'bucketlist') renderBucketList();
@@ -31,7 +46,7 @@ async function loadTransit() {
     const arrivals = data.ctatt.eta;
     const transitMessage = arrivals.slice(0, 4).map(arrival => {
         const time = new Date(arrival.arrT).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-        return `${arrival.rt} Line to ${arrival.destNm}: ${time}`;
+        return escapeHtml(`${arrival.rt} Line to ${arrival.destNm}: ${time}`);
     }).join('<br>');
 
     document.getElementById('transit-info').innerHTML = transitMessage;
@@ -91,7 +106,9 @@ async function renderTodos() {
 
     todos.forEach(task => {
         const li = document.createElement('li');
-        li.innerHTML = `<span>${task}</span> <button onclick="deleteTodo('${encodeURIComponent(task)}')">✕</button>`;
+        const span = document.createElement('span');
+        span.textContent = task;
+        li.append(span, ' ', makeDeleteButton(() => deleteTodo(task)));
         list.appendChild(li);
     });
 }
@@ -112,7 +129,7 @@ async function addTodo() {
 }
 
 async function deleteTodo(item) {
-    await fetch(`/api/todos/${item}`, { method: 'DELETE' });
+    await fetch(`/api/todos/${encodeURIComponent(item)}`, { method: 'DELETE' });
     renderTodos();
 }
 
@@ -126,7 +143,9 @@ async function renderBucketList() {
 
     items.forEach(goal => {
         const li = document.createElement('li');
-        li.innerHTML = `<span>${goal}</span> <button onclick="deleteBucketItem('${encodeURIComponent(goal)}')">✕</button>`;
+        const span = document.createElement('span');
+        span.textContent = goal;
+        li.append(span, ' ', makeDeleteButton(() => deleteBucketItem(goal)));
         list.appendChild(li);
     });
 }
@@ -147,7 +166,7 @@ async function addBucketItem() {
 }
 
 async function deleteBucketItem(item) {
-    await fetch(`/api/bucketlist/${item}`, { method: 'DELETE' });
+    await fetch(`/api/bucketlist/${encodeURIComponent(item)}`, { method: 'DELETE' });
     renderBucketList();
 }
 
@@ -349,10 +368,10 @@ function selectDay(dateStr) {
         li.innerHTML = `
             <div style="display:flex;align-items:center;">
                 <div class="event-dot"></div>
-                <span class="event-time">${time}</span>
-                <span>${e.title}</span>
-            </div>
-            <button onclick="deleteEvent('${e.datetime} | ${e.title}')">✕</button>`;
+                <span class="event-time">${escapeHtml(time)}</span>
+                <span>${escapeHtml(e.title)}</span>
+            </div>`;
+        li.appendChild(makeDeleteButton(() => deleteEvent(`${e.datetime} | ${e.title}`)));
         list.appendChild(li);
     });
 
@@ -404,10 +423,10 @@ function renderUpcoming() {
         li.innerHTML = `
             <div style="display:flex;align-items:center;">
                 <div class="event-dot"></div>
-                <span class="event-time">${months[parseInt(month)-1]} ${parseInt(day)} · ${time}</span>
-                <span>${e.title}</span>
-            </div>
-            <button onclick="deleteEvent('${e.datetime} | ${e.title}')">✕</button>`;
+                <span class="event-time">${months[parseInt(month)-1]} ${parseInt(day)} · ${escapeHtml(time)}</span>
+                <span>${escapeHtml(e.title)}</span>
+            </div>`;
+        li.appendChild(makeDeleteButton(() => deleteEvent(`${e.datetime} | ${e.title}`)));
         list.appendChild(li);
     });
 }
@@ -486,7 +505,7 @@ async function loadPortfolio() {
             li.className = 'event-item';
             li.innerHTML = `
                 <div>
-                    <div style="font-size:11px;font-weight:400;color:#f0e8ff;letter-spacing:0.06em;">${stock.symbol}</div>
+                    <div style="font-size:11px;font-weight:400;color:#f0e8ff;letter-spacing:0.06em;">${escapeHtml(stock.symbol)}</div>
                     <div style="font-size:9px;color:#444;margin-top:2px;">${stock.quantity.toFixed(4)} shares · $${stock.current_price.toFixed(2)}</div>
                 </div>
                 <div style="text-align:right;">
@@ -501,7 +520,7 @@ async function loadPortfolio() {
             li.className = 'event-item';
             li.innerHTML = `
                 <div>
-                    <div style="font-size:11px;font-weight:400;color:#f0e8ff;letter-spacing:0.06em;">${coin.symbol}</div>
+                    <div style="font-size:11px;font-weight:400;color:#f0e8ff;letter-spacing:0.06em;">${escapeHtml(coin.symbol)}</div>
                     <div style="font-size:9px;color:#444;margin-top:2px;">${coin.quantity.toFixed(6)} coins · $${coin.current_price.toFixed(2)}</div>
                 </div>
                 <div style="text-align:right;">

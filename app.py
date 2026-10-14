@@ -88,6 +88,48 @@ def update_memory(user_text, action_taken, memory_update=None):
     
     write_note("memory.md", memory)
 
+def list_item_name(line):
+    # todo or bucket list line -> its text, anything else -> None
+    if line.startswith("- [ ]") or line.startswith("- [x]"):
+        return line.replace("- [ ] ", "").replace("- [x] ", "").strip()
+    return None
+
+
+def event_item_name(line):
+    # calendar line "YYYY-MM-DD HH:MM | title" -> its title, anything else -> None
+    if " | " in line and not line.startswith("#"):
+        return line.split(" | ", 1)[1].strip()
+    return None
+
+
+def voice_delete(filename, search, item_name):
+    # Delete the one item whose name contains what Hubert heard.
+    # Returns (deleted item name, None) or (None, what Hubert should say instead).
+    search = (search or "").strip().lower()
+    if len(search) < 3:
+        return None, "Which one should I delete?"
+
+    lines = read_note(filename).split("\n")
+    matches = [i for i, line in enumerate(lines)
+               if item_name(line) and search in item_name(line).lower()]
+
+    # an exact name match wins, so "milk" can still delete "milk" next to "almond milk"
+    exact = [i for i in matches if item_name(lines[i]).lower() == search]
+    if len(exact) == 1:
+        matches = exact
+
+    if not matches:
+        return None, "I couldn't find that on your list."
+    if len(matches) > 1:
+        names = ", ".join(item_name(lines[i]) for i in matches)
+        return None, f"I found a few: {names}. Which one?"
+
+    deleted = item_name(lines[matches[0]])
+    del lines[matches[0]]
+    write_note(filename, "\n".join(lines))
+    return deleted, None
+
+
 @app.route("/dashboard")
 def dashboard():
     return render_template("index.html")
@@ -160,22 +202,35 @@ def add_todo():
     return jsonify({"status": "ok"})
 
 
-@app.route("/api/todos/<item>", methods=["DELETE"])
+@app.route("/api/todos/<path:item>", methods=["DELETE"])
 def delete_todo(item):
-    # Step 1: read current todos.md content
-    content = read_note("todos.md")
+    # Step 1: refuse empty items, which would match everything
+    item = item.strip()
+    if not item:
+        return jsonify({"error": "item is empty"}), 400
 
-    # Step 2: split into lines
+    # Step 2: read current todos.md content and split into lines
+    content = read_note("todos.md")
     lines = content.split("\n")
 
-    # Step 3: filter out the line containing item
-    filtered_lines = [line for line in lines if item not in line]
+    # Step 3: keep every line except the first todo that exactly matches item
+    kept = []
+    removed = False
+    for line in lines:
+        is_todo = line.startswith("- [ ]") or line.startswith("- [x]")
+        # same cleanup get_todos uses, so this matches what the dashboard shows
+        task = line.replace("- [ ] ", "").replace("- [x] ", "").strip()
+        if is_todo and not removed and task == item:
+            removed = True
+            continue
+        kept.append(line)
 
-    # Step 4: join remaining lines back together
-    new_content = "\n".join(filtered_lines)
+    # Step 4: nothing matched, so leave the file alone
+    if not removed:
+        return jsonify({"error": "item not found"}), 404
 
     # Step 5: write back
-    write_note("todos.md", new_content)
+    write_note("todos.md", "\n".join(kept))
 
     # Step 6: return success
     return jsonify({"status": "ok"})
@@ -213,22 +268,33 @@ def add_bucketlist_item():
     return jsonify({"status": "ok"})
 
 
-@app.route("/api/bucketlist/<item>", methods=["DELETE"])
+@app.route("/api/bucketlist/<path:item>", methods=["DELETE"])
 def delete_bucketlist_item(item):
+    item = item.strip()
+    if not item:
+        return jsonify({"error": "item is empty"}), 400
     # Step 1: read current bucketlist.md content
     content = read_note("bucketlist.md")
 
     # Step 2: split into lines
     lines = content.split("\n")
-
     # Step 3: filter out the line containing item
-    filtered_lines = [line for line in lines if item not in line]
+    kept = []
+    removed = False
+    for line in lines:
+        is_bucket = line.startswith("- [ ]") or line.startswith("- [x]")
+        task = line.replace("- [ ] ", "").replace("- [x] ", "").strip()
+        if is_bucket and not removed and task == item:
+            removed = True
+            continue
+        kept.append(line)
+    
 
     # Step 4: join remaining lines back together
-    new_content = "\n".join(filtered_lines)
-
+    if not removed:
+        return jsonify({"error": "item not found"}), 404
     # Step 5: write back
-    write_note("bucketlist.md", new_content)
+    write_note("bucketlist.md", "\n".join(kept))
 
     # Step 6: return success
     return jsonify({"status": "ok"})
@@ -327,14 +393,11 @@ def voice_command():
         return jsonify({"response": response_text})
 
     elif action == "delete_todo":
-        text = action_json.get("text")
-        content = read_note("todos.md")
-        lines = content.split("\n")
-        filtered_lines = [line for line in lines if text.lower() not in line.lower()]
-        new_content = "\n".join(filtered_lines)
-        write_note("todos.md", new_content)
+        deleted, message = voice_delete("todos.md", action_json.get("text"), list_item_name)
+        if not deleted:
+            return jsonify({"response": message})
         socketio.emit('dashboard_update', {'type': 'todos'})
-        update_memory(user_text=request.json.get("text"), action_taken=f"deleted '{text}' from todos", memory_update=memory_update)
+        update_memory(user_text=request.json.get("text"), action_taken=f"deleted '{deleted}' from todos", memory_update=memory_update)
         return jsonify({"response": response_text})
 
     elif action == "add_bucket":
@@ -349,14 +412,11 @@ def voice_command():
         return jsonify({"response": response_text})
 
     elif action == "delete_bucket":
-        text = action_json.get("text")
-        content = read_note("bucketlist.md")
-        lines = content.split("\n")
-        filtered_lines = [line for line in lines if text.lower() not in line.lower()]
-        new_content = "\n".join(filtered_lines)
-        write_note("bucketlist.md", new_content)
+        deleted, message = voice_delete("bucketlist.md", action_json.get("text"), list_item_name)
+        if not deleted:
+            return jsonify({"response": message})
         socketio.emit('dashboard_update', {'type': 'bucketlist'})
-        update_memory(user_text=request.json.get("text"), action_taken=f"deleted '{text}' from bucket list", memory_update=memory_update)
+        update_memory(user_text=request.json.get("text"), action_taken=f"deleted '{deleted}' from bucket list", memory_update=memory_update)
         return jsonify({"response": response_text})
     
     elif action == "add_event":
@@ -373,13 +433,11 @@ def voice_command():
         return jsonify({"response": response_text})
 
     elif action == "delete_event":
-        title = action_json.get("title")
-        content = read_note("calendar.md")
-        lines = content.split("\n")
-        filtered = [line for line in lines if title.lower() not in line.lower()]
-        write_note("calendar.md", "\n".join(filtered))
+        deleted, message = voice_delete("calendar.md", action_json.get("title"), event_item_name)
+        if not deleted:
+            return jsonify({"response": message})
         socketio.emit('dashboard_update', {'type': 'calendar'})
-        update_memory(user_text=request.json.get("text"), action_taken=f"deleted event '{title}'", memory_update=memory_update)
+        update_memory(user_text=request.json.get("text"), action_taken=f"deleted event '{deleted}'", memory_update=memory_update)
         return jsonify({"response": response_text})
 
     response_text = action_json.get("response", "I'm not sure how to help with that.")
@@ -437,10 +495,21 @@ def add_event():
     return jsonify({"status": "ok"})
 @app.route("/api/events/<path:event_id>", methods=["DELETE"])
 def delete_event(event_id):
+    sepEvent = event_id.strip()
+    if not sepEvent:
+        return jsonify({"error": "event_id is empty"}), 400
     content = read_note("calendar.md")
     lines = content.split("\n")
-    filtered = [line for line in lines if event_id not in line]
-    write_note("calendar.md", "\n".join(filtered))
+    kept = []
+    removed = False
+    for line in lines:
+        if not removed and line.strip() == sepEvent:
+            removed = True
+            continue
+        kept.append(line)
+    if not removed:
+        return jsonify({"error": "event not found"}), 404
+    write_note("calendar.md", "\n".join(kept))
     socketio.emit('dashboard_update', {'type': 'calendar'})
     return jsonify({"status": "ok"})
 
