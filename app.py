@@ -1,32 +1,19 @@
-from calendar import calendar
 from datetime import datetime
-from urllib import response
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, send_from_directory
 from dotenv import load_dotenv
 from flask_socketio import SocketIO
 import requests
 import os
 import json
-import anthropic
-import urllib3
 import base64
 import psutil
 import socket
 import time
 import robin_stocks.robinhood as r
 import glob
-from flask import send_from_directory
-
-
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-
 
 # Load environment variables from .env
 load_dotenv()
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-claude_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 OWM_API_KEY = os.getenv("OWM_API_KEY")
 ROBINHOOD_EMAIL = os.getenv("ROBINHOOD_EMAIL")
 ROBINHOOD_PASSWORD = os.getenv("ROBINHOOD_PASSWORD")
@@ -40,18 +27,9 @@ GITHUB_HEADERS = {
 }
 ALPHA_VANTAGE_KEY = os.getenv("ALPHA_VANTAGE_KEY")
 CTA_API_KEY = os.getenv("CTA_API_KEY")  # or whatever transit key you got
-OBSIDIAN_API_KEY = os.getenv("OBSIDIAN_API_KEY")
-OBSIDIAN_PORT = os.getenv("OBSIDIAN_PORT", "27124")
-OBSIDIAN_BASE_URL = f"https://127.0.0.1:{OBSIDIAN_PORT}"
-OBSIDIAN_HEADERS = {
-    "Authorization": f"Bearer {OBSIDIAN_API_KEY}",
-    "Content-Type": "text/markdown"
-}
 r.login(ROBINHOOD_EMAIL, ROBINHOOD_PASSWORD)
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
-
-from flask import render_template
 
 def read_note(filename):
     try:
@@ -259,9 +237,7 @@ def delete_bucketlist_item(item):
 def voice_command():
     text = request.json.get("text")
 
-    # Step 1: gather context from Obsidian
-    
-    # Step 1: gather context from Obsiddon
+    # Step 1: gather context from notes
     todos = read_note("todos.md")
     bucketlist = read_note("bucketlist.md")
     memory = read_note("memory.md")
@@ -316,12 +292,7 @@ def voice_command():
 
     The memory_update field should only be filled when you learn something genuinely useful about Ale's preferences, habits, or interests. Not every interaction needs one."""
 
-    # Step 3: call Claude
-    # TODO: use claude_client.messages.create() to send the voice command
-    # model="claude-haiku-4-5",
-    # max_tokens: 256
-    # messages: [{"role": "user", "content": text}]
-    # system: system_prompt
+    # Step 3: call Ollama
     response = requests.post("http://localhost:11434/api/generate", json={
         "model": "llama3.2",
         "prompt": f"{system_prompt}\n\nUser: {text}",
@@ -464,7 +435,6 @@ def add_event():
     write_note("calendar.md", content + new_line)
     socketio.emit('dashboard_update', {'type': 'calendar'})
     return jsonify({"status": "ok"})
-#temp page
 @app.route("/api/events/<path:event_id>", methods=["DELETE"])
 def delete_event(event_id):
     content = read_note("calendar.md")
@@ -541,7 +511,6 @@ def get_portfolio():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-#ellevlabs TTS
 @app.route("/api/system")
 def get_system():
     cpu_percent = psutil.cpu_percent(interval=1)
@@ -625,4 +594,4 @@ def serve_photo(filename):
     return send_from_directory(PHOTOS_DIR, filename)
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=os.getenv("FLASK_DEBUG") == "1")
