@@ -14,6 +14,10 @@ import psutil
 import socket
 import time
 import robin_stocks.robinhood as r
+import glob
+from flask import send_from_directory
+
+
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -592,6 +596,8 @@ def speak():
             "use_speaker_boost": True
         }
     }
+
+
     
     response = requests.post(url, headers=headers, json=payload)
     print("ElevenLabs status:", response.status_code)
@@ -604,6 +610,19 @@ def speak():
         return jsonify({"error": "TTS failed", "details": response.text}), 500
 
 
+PHOTOS_DIR = os.path.join(os.path.dirname(__file__), 'static', 'photos')
+@app.route("/api/photos")
+def get_photos():
+    extensions = ['*.jpg', '*.jpeg', '*.png', '*.gif', '*.webp']
+    photos = []
+    for ext in extensions:
+        photos.extend(glob.glob(os.path.join(PHOTOS_DIR, ext)))
+    photos = sorted([os.path.basename(p) for p in photos])
+    return jsonify(photos)
+
+@app.route('/photos/<filename>')
+def serve_photo(filename):
+    return send_from_directory(PHOTOS_DIR, filename)
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)

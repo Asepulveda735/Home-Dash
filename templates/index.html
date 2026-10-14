@@ -165,18 +165,23 @@
 
 
         <!-- Page 4: Photos -->
+        <!-- Page 4: Photos -->
         <div class="page" id="page-photos">
             <div class="dashboard-header">
                 <span class="sys-label">HUBERT / PHOTOS</span>
                 <span class="sys-status">ONLINE</span>
             </div>
             <div class="dashboard-divider"></div>
-            <div class="dashboard-container">
-                <div class="tile" style="grid-column: span 2;">
-                    <h2>Photo Album</h2>
-                    <p style="color:#444;font-size:12px;">Coming soon</p>
-                </div>
+
+            <div id="photo-main" style="position:relative; width:100%; height:calc(100vh - 180px); background:#111; overflow:hidden;">
+                <img id="photo-display" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
+                <div id="photo-empty" style="display:flex;align-items:center;justify-content:center;height:100%;color:#333;font-size:11px;letter-spacing:0.1em;">NO PHOTOS</div>
+                <div id="photo-count" style="position:absolute;top:10px;right:12px;font-size:9px;color:#6F28BE;letter-spacing:0.1em;background:rgba(0,0,0,0.6);padding:2px 8px;border-radius:4px;"></div>
+                <button onclick="prevPhoto()" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);background:rgba(111,40,190,0.3);border:1px solid rgba(111,40,190,0.5);color:#fff;font-size:20px;width:36px;height:36px;border-radius:8px;cursor:pointer;">‹</button>
+                <button onclick="nextPhoto()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:rgba(111,40,190,0.3);border:1px solid rgba(111,40,190,0.5);color:#fff;font-size:20px;width:36px;height:36px;border-radius:8px;cursor:pointer;">›</button>
             </div>
+
+            <div id="photo-strip" style="display:flex;gap:4px;padding:6px;background:#111;overflow-x:auto;height:72px;"></div>
         </div>
 
 

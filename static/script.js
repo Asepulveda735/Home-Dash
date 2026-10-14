@@ -515,6 +515,86 @@ async function loadPortfolio() {
         document.getElementById('portfolio-total').textContent = 'Error';
     }
 }
+// ---- Photo Album ----
+let photos = [];
+let currentPhoto = 0;
+let photoInterval = null;
+
+async function loadPhotos() {
+    const res = await fetch('/api/photos');
+    photos = await res.json();
+
+    if (photos.length === 0) return;
+
+    document.getElementById('photo-empty').style.display = 'none';
+    document.getElementById('photo-display').style.display = 'block';
+
+    renderPhotoStrip();
+    showPhoto(0);
+    startSlideshow();
+}
+
+function showPhoto(index) {
+    currentPhoto = index;
+    const img = document.getElementById('photo-display');
+    img.src = `/photos/${photos[index]}`;
+    document.getElementById('photo-count').textContent = `${index + 1} / ${photos.length}`;
+
+    // highlight active thumbnail
+    document.querySelectorAll('.photo-thumb').forEach((t, i) => {
+        t.style.border = i === index ? '2px solid #6F28BE' : '2px solid transparent';
+        t.style.opacity = i === index ? '1' : '0.5';
+    });
+
+    // scroll thumbnail into view
+    const thumbs = document.querySelectorAll('.photo-thumb');
+    const strip = document.getElementById('photo-strip');
+    const thumb = thumbs[index];
+    if (thumb) {
+        const offset = thumb.getBoundingClientRect().left - strip.getBoundingClientRect().left;
+        strip.scrollTo({
+            left: strip.scrollLeft + offset - strip.clientWidth / 2 + thumb.clientWidth / 2,
+            behavior: 'smooth'
+        });
+    }
+}
+
+function renderPhotoStrip() {
+    const strip = document.getElementById('photo-strip');
+    strip.innerHTML = '';
+    photos.forEach((photo, i) => {
+        const img = document.createElement('img');
+        img.src = `/photos/${photo}`;
+        img.className = 'photo-thumb';
+        img.style.cssText = 'height:60px;width:80px;object-fit:cover;border-radius:5px;cursor:pointer;flex-shrink:0;border:2px solid transparent;opacity:0.5;';
+        img.onclick = () => { showPhoto(i); resetSlideshow(); };
+        strip.appendChild(img);
+    });
+}
+
+function nextPhoto() {
+    showPhoto((currentPhoto + 1) % photos.length);
+    resetSlideshow();
+}
+
+function prevPhoto() {
+    showPhoto((currentPhoto - 1 + photos.length) % photos.length);
+    resetSlideshow();
+}
+
+function startSlideshow() {
+    photoInterval = setInterval(() => {
+        showPhoto((currentPhoto + 1) % photos.length);
+    }, 5000);
+}
+
+function resetSlideshow() {
+    clearInterval(photoInterval);
+    startSlideshow();
+}
+
+loadPhotos();
+
 
 loadPortfolio();
 setInterval(loadPortfolio, 60000);
