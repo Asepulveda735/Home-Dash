@@ -46,7 +46,7 @@ body::after {
 .pages-wrapper {
     display: flex;
     flex-direction: row;
-    width: 300vw;
+    width: 500vw;
     height: 100vh;
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -66,7 +66,8 @@ body::after {
     transform: translateX(-50%);
     display: flex;
     gap: 8px;
-    z-index: 200;
+    z-index: 9999;
+    pointer-events: all;
 }
 
 .dot {
@@ -522,4 +523,9 @@ li button:hover {
 input, textarea {
     -webkit-user-select: text;
     user-select: text;
+}
+.tile-sub {
+    font-size: 10px;
+    color: #444;
+    margin-top: 3px;
 }

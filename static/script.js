@@ -198,7 +198,7 @@ function startListening() {
 
 // ---- Page navigation ----
 let currentPage = 0;
-const totalPages = 4; // Update this if you add more pages
+const totalPages = 5; // Update this if you add more pages
 let touchStartX = 0;
 
 function goToPage(index) {
@@ -455,6 +455,69 @@ async function loadSystem() {
         console.log('System stats not available on this device');
     }
 }
+
+
+// ---- Portfolio ----
+async function loadPortfolio() {
+    try {
+        const res = await fetch('/api/portfolio');
+        const data = await res.json();
+
+        if (data.error) {
+            document.getElementById('portfolio-total').textContent = 'Unavailable';
+            return;
+        }
+
+        document.getElementById('portfolio-total').textContent = `$${data.total_value.toLocaleString()}`;
+
+        const changeEl = document.getElementById('portfolio-change');
+        changeEl.textContent = `${data.daily_change >= 0 ? '▲' : '▼'} $${Math.abs(data.daily_change).toFixed(2)} (${Math.abs(data.daily_change_pct).toFixed(2)}%) TODAY`;
+        changeEl.style.color = data.daily_change >= 0 ? '#4caf7d' : '#e05555';
+
+        document.getElementById('buying-power').textContent = `$${data.buying_power.toFixed(2)}`;
+        document.getElementById('positions-count').textContent = `${data.stocks.length} stocks`;
+        document.getElementById('crypto-count').textContent = `${data.crypto.length} crypto`;
+
+        const list = document.getElementById('holdings-list');
+        list.innerHTML = '';
+
+        data.stocks.forEach(stock => {
+            const li = document.createElement('li');
+            li.className = 'event-item';
+            li.innerHTML = `
+                <div>
+                    <div style="font-size:11px;font-weight:400;color:#f0e8ff;letter-spacing:0.06em;">${stock.symbol}</div>
+                    <div style="font-size:9px;color:#444;margin-top:2px;">${stock.quantity.toFixed(4)} shares · $${stock.current_price.toFixed(2)}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:11px;color:#e0d4f7;">$${stock.total_value.toFixed(2)}</div>
+                    <div style="font-size:9px;color:${stock.gain_loss >= 0 ? '#4caf7d' : '#e05555'};margin-top:2px;">${stock.gain_loss >= 0 ? '▲' : '▼'} $${Math.abs(stock.gain_loss).toFixed(2)}</div>
+                </div>`;
+            list.appendChild(li);
+        });
+
+        data.crypto.forEach(coin => {
+            const li = document.createElement('li');
+            li.className = 'event-item';
+            li.innerHTML = `
+                <div>
+                    <div style="font-size:11px;font-weight:400;color:#f0e8ff;letter-spacing:0.06em;">${coin.symbol}</div>
+                    <div style="font-size:9px;color:#444;margin-top:2px;">${coin.quantity.toFixed(6)} coins · $${coin.current_price.toFixed(2)}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:11px;color:#e0d4f7;">$${coin.total_value.toFixed(2)}</div>
+                    <div style="font-size:9px;color:${coin.gain_loss >= 0 ? '#4caf7d' : '#e05555'};margin-top:2px;">${coin.gain_loss >= 0 ? '▲' : '▼'} $${Math.abs(coin.gain_loss).toFixed(2)}</div>
+                </div>`;
+            list.appendChild(li);
+        });
+
+    } catch (e) {
+        document.getElementById('portfolio-total').textContent = 'Error';
+    }
+}
+
+loadPortfolio();
+setInterval(loadPortfolio, 60000);
 
 loadSystem();
 setInterval(loadSystem, 10000);

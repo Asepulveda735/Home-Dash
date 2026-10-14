@@ -13,6 +13,8 @@ import base64
 import psutil
 import socket
 import time
+import robin_stocks.robinhood as r
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
@@ -22,6 +24,8 @@ load_dotenv()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 claude_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 OWM_API_KEY = os.getenv("OWM_API_KEY")
+ROBINHOOD_EMAIL = os.getenv("ROBINHOOD_EMAIL")
+ROBINHOOD_PASSWORD = os.getenv("ROBINHOOD_PASSWORD")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
@@ -39,8 +43,7 @@ OBSIDIAN_HEADERS = {
     "Authorization": f"Bearer {OBSIDIAN_API_KEY}",
     "Content-Type": "text/markdown"
 }
-
-
+r.login(ROBINHOOD_EMAIL, ROBINHOOD_PASSWORD)
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
@@ -467,6 +470,73 @@ def delete_event(event_id):
     socketio.emit('dashboard_update', {'type': 'calendar'})
     return jsonify({"status": "ok"})
 
+
+#robinhood
+@app.route("/api/portfolio")
+def get_portfolio():
+    try:
+        # total portfolio value
+        portfolio = r.profiles.load_portfolio_profile()
+        total_value = float(portfolio['equity'])
+        prev_close = float(portfolio['adjusted_equity_previous_close'])
+        daily_change = total_value - prev_close
+        daily_change_pct = (daily_change / prev_close) * 100
+
+        # individual stock positions
+        positions = r.account.get_open_stock_positions()
+        stocks = []
+        for position in positions:
+            instrument = r.stocks.get_instrument_by_url(position['instrument'])
+            quote = r.stocks.get_latest_price(instrument['symbol'])[0]
+            quantity = float(position['quantity'])
+            avg_cost = float(position['average_buy_price'])
+            current_price = float(quote)
+            total = quantity * current_price
+            gain = total - (quantity * avg_cost)
+            stocks.append({
+                "symbol": instrument['symbol'],
+                "quantity": quantity,
+                "avg_cost": avg_cost,
+                "current_price": current_price,
+                "total_value": round(total, 2),
+                "gain_loss": round(gain, 2)
+            })
+
+        # crypto holdings
+        crypto_positions = r.crypto.get_crypto_positions()
+        crypto = []
+        for position in crypto_positions:
+            quantity = float(position['quantity_available'])
+            if quantity > 0:
+                symbol = position['currency']['code']
+                quote = r.crypto.get_crypto_quote(symbol)
+                current_price = float(quote['mark_price'])
+                cost_basis = float(position['cost_bases'][0]['direct_cost_basis']) if position['cost_bases'] else 0
+                total = quantity * current_price
+                gain = total - cost_basis
+                crypto.append({
+                    "symbol": symbol,
+                    "quantity": quantity,
+                    "current_price": current_price,
+                    "total_value": round(total, 2),
+                    "gain_loss": round(gain, 2)
+                })
+
+        # buying power
+        account = r.profiles.load_account_profile()
+        buying_power = float(account['buying_power'])
+
+        return jsonify({
+            "total_value": round(total_value, 2),
+            "daily_change": round(daily_change, 2),
+            "daily_change_pct": round(daily_change_pct, 2),
+            "buying_power": round(buying_power, 2),
+            "stocks": stocks,
+            "crypto": crypto
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 #ellevlabs TTS
 @app.route("/api/system")
 def get_system():

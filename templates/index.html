@@ -98,14 +98,40 @@
             </div>
         </div>
 
-       <!-- Page 3: Markets -->
-        <div class="page" id="page-stocks">
+        <!-- Page 3: Markets + Portfolio -->
+        <div class="page" id="page-markets">
             <div class="dashboard-header">
                 <span class="sys-label">HUBERT / MARKETS</span>
                 <span class="sys-status">ONLINE</span>
             </div>
-            <div class="dashboard-time" id="markets-time"></div>
-            <div class="dashboard-date" id="markets-date"></div>
+            <div class="dashboard-divider"></div>
+
+
+            <div class="dashboard-time" id="portfolio-total" style="padding: 0 24px;">Loading...</div>
+            <div class="dashboard-date" id="portfolio-change" style="padding: 0 24px;"></div>
+            <div class="dashboard-divider"></div>
+
+            <div class="dashboard-container" style="padding-bottom: 10px;">
+                <div class="tile" id="buying-power-tile">
+                    <h2>Buying Power</h2>
+                    <p id="buying-power" class="price-value">--</p>
+                    <p class="tile-sub">Available cash</p>
+                </div>
+                <div class="tile" id="positions-count-tile">
+                    <h2>Positions</h2>
+                    <p id="positions-count" class="price-value">--</p>
+                    <p id="crypto-count" class="tile-sub">-- crypto</p>
+                </div>
+                <div class="tile" style="grid-column: span 2;" id="holdings-tile">
+                    <h2>Holdings</h2>
+                    <ul id="holdings-list"></ul>
+                </div>
+            </div>
+
+            <div class="dashboard-header" style="padding: 0 24px; margin-top: 8px;">
+                <span class="sys-label">CRYPTO / STOCKS</span>
+                <span class="sys-status"></span>
+            </div>
             <div class="dashboard-divider"></div>
 
             <div class="dashboard-container">
@@ -138,7 +164,23 @@
         </div>
 
 
-        <!-- Page 4: System -->
+        <!-- Page 4: Photos -->
+        <div class="page" id="page-photos">
+            <div class="dashboard-header">
+                <span class="sys-label">HUBERT / PHOTOS</span>
+                <span class="sys-status">ONLINE</span>
+            </div>
+            <div class="dashboard-divider"></div>
+            <div class="dashboard-container">
+                <div class="tile" style="grid-column: span 2;">
+                    <h2>Photo Album</h2>
+                    <p style="color:#444;font-size:12px;">Coming soon</p>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Page 5: System -->
         <div class="page" id="page-system">
             <div class="dashboard-header">
                 <span class="sys-label">HUBERT / SYSTEM</span>
@@ -173,7 +215,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 
     <!-- Dot navigation -->
@@ -182,6 +223,8 @@
         <span class="dot" onclick="goToPage(1)"></span>
         <span class="dot" onclick="goToPage(2)"></span>
         <span class="dot" onclick="goToPage(3)"></span>
+            <span class="dot" onclick="goToPage(4)"></span>
+
     </div>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
